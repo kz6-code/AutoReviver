@@ -1,0 +1,2034 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AutoReviver/01 — The right car part, first time</title>
+<meta name="description" content="AutoReviver-verified car parts marketplace. Decode your VIN, lock in your vehicle, search guaranteed-fit parts."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & TOKENS ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;border:0 solid transparent}
+html{scroll-behavior:smooth}
+body{margin:0;background:#0b0b0b;color:#f0ede8;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+:root{
+  --bg:#0b0b0b;--bg2:#141414;--bg3:#1c1c1c;--bg4:#242424;
+  --fg:#f0ede8;--fg2:#a09b94;--fg3:#5c5851;
+  --amber:#e8a030;--amber2:#c07820;--amber3:#7a4c10;
+  --red:#c84040;--green:#30a060;
+  --border:#2a2a2a;--border2:#383838;
+  --font-d:'Rajdhani',sans-serif;
+  --font-m:'JetBrains Mono',monospace;
+  --r:2px;
+}
+h1,h2,h3,h4{font-family:var(--font-d);letter-spacing:.03em;margin:0}
+p{margin:0}a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;cursor:pointer;padding:0}
+input,select,textarea{font:inherit;color:inherit}
+img{display:block;max-width:100%}
+.mono{font-family:var(--font-m)}
+.xs{font-size:11px}
+.up{text-transform:uppercase;letter-spacing:.18em}
+.dim{color:var(--fg2)}
+.accent{color:var(--amber)}
+.con{max-width:76rem;margin:0 auto;padding:0 1.5rem}
+
+/* ── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── STICKY BANNER ──────────────────────────────────────── */
+#banner{position:sticky;top:0;z-index:100;background:rgba(11,11,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:none}
+#banner.show{display:block;animation:slideDown .25s ease}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:none}}
+.banner-inner{display:flex;align-items:center;gap:1rem;padding:.6rem 1.5rem;max-width:76rem;margin:0 auto}
+.banner-dot{width:7px;height:7px;background:var(--amber);border-radius:50%;animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+#banner-text{flex:1;font-family:var(--font-d);font-weight:700;font-size:.95rem;text-transform:uppercase;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.banner-change{font-family:var(--font-m);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg3);transition:color .2s;border:1px solid var(--border);padding:.3rem .7rem}
+.banner-change:hover{color:var(--amber);border-color:var(--amber3)}
+
+/* ── HERO ───────────────────────────────────────────────── */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--border);padding:6rem 0 5rem}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(to right,var(--bg3) 1px,transparent 1px),linear-gradient(to bottom,var(--bg3) 1px,transparent 1px);background-size:52px 52px;opacity:.5;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,black 20%,transparent 80%)}
+.hero-glow{position:absolute;top:-10%;left:50%;transform:translateX(-50%);width:80%;height:60%;background:radial-gradient(ellipse,rgba(232,160,48,.08) 0%,transparent 70%);pointer-events:none}
+.hero-inner{position:relative;display:grid;gap:3rem;align-items:center}
+@media(min-width:900px){.hero-inner{grid-template-columns:1fr 420px}}
+.hero-eyebrow{display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+.hero-title{font-size:clamp(3rem,8vw,6.5rem);font-weight:700;text-transform:uppercase;line-height:.9;margin-bottom:1.5rem}
+.hero-title span{color:var(--amber);position:relative}
+.hero-sub{color:var(--fg2);font-size:1.05rem;line-height:1.65;max-width:32rem;margin-bottom:2.5rem}
+.hero-cta{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
+.hero-stats{display:flex;gap:1.5rem}
+.hero-stats span{display:flex;flex-direction:column;gap:.15rem}
+.hero-stats .num{font-family:var(--font-d);font-size:1.5rem;font-weight:700;color:var(--fg)}
+.hero-stats .lbl{font-family:var(--font-m);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg3)}
+
+/* VIN decoder card (hero right) */
+.decoder-card{background:var(--bg2);border:1px solid var(--border);padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
+.decoder-card-head{display:flex;align-items:center;gap:.75rem}
+.decoder-card-icon{width:32px;height:32px;background:var(--amber3);display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.decoder-tabs{display:flex;border-bottom:1px solid var(--border);margin:-.25rem 0 .5rem}
+.dtab{font-family:var(--font-m);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg3);padding:.6rem 0;margin-right:1.5rem;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px}
+.dtab.on{color:var(--fg);border-bottom-color:var(--amber)}
+.dtab:hover{color:var(--fg2)}
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:.6rem;font-family:var(--font-d);font-weight:700;text-transform:uppercase;letter-spacing:.15em;border:1px solid transparent;transition:all .18s;white-space:nowrap;cursor:pointer}
+.btn-sm{height:2.4rem;padding:0 1.1rem;font-size:.8rem}
+.btn-md{height:2.8rem;padding:0 1.4rem;font-size:.85rem}
+.btn-lg{height:3.2rem;padding:0 1.8rem;font-size:.9rem}
+.btn-xl{height:3.6rem;padding:0 2.2rem;font-size:.95rem}
+.btn-primary{background:var(--amber);color:#0b0b0b;border-color:var(--amber)}
+.btn-primary:hover:not(:disabled){background:#f0b040;box-shadow:0 0 0 1px var(--amber),0 0 28px -4px rgba(232,160,48,.4)}
+.btn-primary:disabled{background:var(--bg4);color:var(--fg3);border-color:var(--border);cursor:not-allowed}
+.btn-outline{border-color:var(--amber);color:var(--amber)}
+.btn-outline:hover{background:rgba(232,160,48,.08);box-shadow:0 0 0 1px var(--amber)}
+.btn-ghost{border-color:var(--border);color:var(--fg2)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--fg)}
+
+/* ── INPUTS ─────────────────────────────────────────────── */
+.inp{height:3rem;background:var(--bg3);border:1px solid var(--border);color:var(--fg);padding:0 1rem;width:100%;outline:none;font-size:.95rem;transition:border .18s,box-shadow .18s}
+.inp:focus{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber3)}
+.inp::placeholder{color:var(--fg3)}
+.inp-mono{font-family:var(--font-m);letter-spacing:.18em;text-transform:uppercase}
+.inp-sm{height:2.5rem;font-size:.85rem}
+.sel{height:3rem;background:var(--bg3);border:1px solid var(--border);color:var(--fg);padding:0 1rem;width:100%;outline:none;appearance:none;font-family:var(--font-d);text-transform:uppercase;letter-spacing:.05em;font-size:.9rem;transition:border .18s}
+.sel:focus{border-color:var(--amber)}
+.sel:disabled,.inp:disabled{opacity:.35;cursor:not-allowed}
+.field{display:block}
+.field-lbl{display:block;font-family:var(--font-m);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg3);margin-bottom:.4rem}
+
+/* VIN input wrapper */
+.vin-wrap{position:relative}
+.vin-count{position:absolute;right:.75rem;top:50%;transform:translateY(-50%);font-family:var(--font-m);font-size:9px;letter-spacing:.1em;color:var(--fg3);pointer-events:none}
+.vin-row{display:flex;gap:.5rem}
+.vin-row .vin-wrap{flex:1}
+
+/* ── STATUS ─────────────────────────────────────────────── */
+.error-box{background:rgba(200,64,64,.08);border:1px solid rgba(200,64,64,.3);padding:.75rem 1rem;color:#e88080;font-size:.875rem;margin-top:.75rem;display:none}
+.error-box.show{display:block}
+.loading{display:none;align-items:center;gap:.75rem;padding:1rem 0;color:var(--fg2);font-family:var(--font-m);font-size:.8rem;letter-spacing:.1em}
+.loading.show{display:flex}
+.spin{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── RESULT ─────────────────────────────────────────────── */
+.result{background:var(--bg2);border:1px solid var(--border);animation:fadeUp .3s ease;margin-top:.75rem}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.result-head{background:var(--bg3);border-bottom:1px solid var(--border);padding:1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem}
+@media(min-width:600px){.result-head{flex-direction:row;align-items:center}}
+.result-eyebrow{font-family:var(--font-m);font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin-bottom:.2rem}
+.result-title{font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+.result-vin{font-family:var(--font-m);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--fg3);margin-top:.15rem}
+.field-grid{display:grid;grid-template-columns:repeat(2,1fr);border-top:1px solid var(--border)}
+@media(min-width:480px){.field-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:700px){.field-grid{grid-template-columns:repeat(4,1fr)}}
+.fg-group-title{padding:.5rem 1rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);font-family:var(--font-m);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--fg3)}
+.fg-cell{padding:.75rem 1rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border);animation:fadeUp .3s both}
+.fg-cell .lbl{font-family:var(--font-m);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg3);margin-bottom:.2rem}
+.fg-cell .val{font-family:var(--font-d);font-size:.875rem;font-weight:600;text-transform:uppercase}
+
+/* example chips */
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem}
+.chip{font-family:var(--font-m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;border:1px solid var(--border);padding:.3rem .6rem;color:var(--fg3);transition:all .18s}
+.chip:hover{border-color:var(--amber3);color:var(--amber)}
+
+/* ── SECTION ────────────────────────────────────────────── */
+.sec{border-bottom:1px solid var(--border);padding:5rem 0}
+.sec-alt{background:rgba(255,255,255,.012)}
+.step-tag{font-family:var(--font-m);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:.6rem}
+.sec-title{font-size:clamp(1.75rem,4vw,2.75rem);font-weight:700;text-transform:uppercase}
+.sec-sub{margin-top:.6rem;color:var(--fg2);font-size:.95rem;max-width:34rem;line-height:1.65}
+
+/* ── LOOKUP / MANUAL ────────────────────────────────────── */
+.tab-strip{display:flex;gap:2rem;border-bottom:1px solid var(--border);margin:2rem 0 1.5rem}
+.tab{font-family:var(--font-d);font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--fg3);padding-bottom:.85rem;margin-bottom:-1px;border-bottom:2px solid transparent;transition:all .2s}
+.tab.on{color:var(--fg);border-bottom-color:var(--amber)}
+.tab:hover{color:var(--fg2)}
+.tab-panel{display:none}.tab-panel.on{display:block}
+.manual-grid{display:grid;gap:.75rem;grid-template-columns:1fr 1fr}
+@media(min-width:640px){.manual-grid{grid-template-columns:1fr 1fr 1fr 1fr}}
+.more-toggle{font-family:var(--font-m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg3);margin-top:1rem;transition:color .2s}
+.more-toggle:hover{color:var(--amber)}
+.manual-more{display:none;margin-top:.75rem;display:none}
+.manual-more.show{display:grid;gap:.75rem;grid-template-columns:1fr 1fr 1fr}
+
+/* ── PARTS ──────────────────────────────────────────────── */
+.parts-wrap{position:relative;min-height:400px}
+.parts-lock{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:linear-gradient(to bottom,rgba(11,11,11,.1) 0%,rgba(11,11,11,.85) 30%,rgba(11,11,11,.98) 80%)}
+.parts-lock-msg{font-family:var(--font-d);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--fg2)}
+.parts-body.locked{pointer-events:none;user-select:none;filter:blur(3px) brightness(.4)}
+.parts-search{display:grid;gap:.75rem;grid-template-columns:1fr;margin-bottom:1.5rem}
+@media(min-width:600px){.parts-search{grid-template-columns:1fr auto}}
+
+/* category grid */
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);margin-bottom:1.5rem}
+@media(min-width:600px){.cat-grid{grid-template-columns:repeat(4,1fr)}}
+.cat-btn{background:var(--bg2);padding:1.25rem;display:flex;flex-direction:column;justify-content:space-between;height:7.5rem;transition:all .18s;position:relative;overflow:hidden}
+.cat-btn::before{content:'';position:absolute;inset:0;background:var(--amber);opacity:0;transition:opacity .18s}
+.cat-btn:hover::before{opacity:.04}
+.cat-btn:hover{box-shadow:inset 0 0 0 1px var(--amber3)}
+.cat-top{display:flex;justify-content:space-between;align-items:flex-start}
+.cat-glyph{font-size:1.6rem;color:var(--amber);transition:transform .18s}
+.cat-btn:hover .cat-glyph{transform:scale(1.1)}
+.cat-code{font-family:var(--font-m);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg3)}
+.cat-name{font-family:var(--font-d);font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1.1}
+
+/* ── AI PARTS RESULTS ───────────────────────────────────── */
+.ai-results{margin-top:1rem;display:none}
+.ai-results.show{display:block}
+.ai-result-head{display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+.ai-streaming{font-family:var(--font-m);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);animation:pulse 1s infinite}
+.parts-list{display:flex;flex-direction:column;gap:.75rem}
+.part-card{background:var(--bg2);border:1px solid var(--border);display:grid;grid-template-columns:1fr auto;gap:1rem;padding:1.25rem;transition:border-color .18s;cursor:pointer}
+.part-card:hover{border-color:var(--border2)}
+.part-card.selected{border-color:var(--amber3);background:rgba(232,160,48,.04)}
+.part-brand{font-family:var(--font-m);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:.3rem}
+.part-title{font-family:var(--font-d);font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em;margin-bottom:.4rem}
+.part-desc{font-size:.875rem;color:var(--fg2);line-height:1.6;margin-bottom:.75rem}
+.part-tags{display:flex;flex-wrap:wrap;gap:.35rem}
+.ptag{font-family:var(--font-m);font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:.25rem .55rem;border:1px solid var(--border)}
+.ptag.fit-exact{border-color:rgba(48,160,96,.5);color:#60c080;background:rgba(48,160,96,.06)}
+.ptag.fit-oem{border-color:rgba(232,160,48,.4);color:var(--amber);background:rgba(232,160,48,.06)}
+.ptag.fit-oe{border-color:var(--border)}
+.part-price{font-family:var(--font-d);font-size:1.5rem;font-weight:700;color:var(--amber);white-space:nowrap}
+.part-msrp{font-family:var(--font-m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--fg3);text-decoration:line-through;margin-top:.15rem}
+.part-action{margin-top:.5rem}
+.AutoReviver-badge{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font-m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;padding:.2rem .6rem;margin-top:.4rem}
+.badge-fit{border:1px solid rgba(48,160,96,.4);color:#60c080;background:rgba(48,160,96,.07)}
+.badge-warn{border:1px solid rgba(200,150,40,.4);color:#d09840;background:rgba(200,150,40,.07)}
+.badge-no{border:1px solid rgba(200,64,64,.4);color:#d07070;background:rgba(200,64,64,.07)}
+
+/* compare bar */
+.compare-bar{position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(20,20,20,.96);backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:.75rem 1.5rem;display:none;align-items:center;gap:1rem}
+.compare-bar.show{display:flex}
+.compare-items{display:flex;gap:.5rem;flex:1;flex-wrap:wrap}
+.compare-item{font-family:var(--font-m);font-size:9px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--amber3);padding:.3rem .75rem;color:var(--amber);display:flex;align-items:center;gap:.5rem}
+.compare-item button{color:var(--fg3);font-size:1rem;line-height:1}
+.compare-item button:hover{color:var(--red)}
+.compare-count{font-family:var(--font-m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg3)}
+
+/* compare modal */
+.modal-bg{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:none}
+.modal-bg.show{display:flex;align-items:stretch;justify-content:flex-end}
+.modal{width:min(680px,100vw);background:var(--bg);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;animation:slideRight .3s ease}
+@keyframes slideRight{from{transform:translateX(100%)}to{transform:none}}
+.modal-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-body{flex:1;overflow-y:auto;padding:1.5rem}
+.modal-close{font-size:1.2rem;color:var(--fg3);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);transition:all .18s}
+.modal-close:hover{border-color:var(--red);color:var(--red)}
+.compare-table{width:100%;border-collapse:collapse}
+.compare-table th,.compare-table td{padding:.75rem 1rem;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.compare-table th:first-child,.compare-table td:first-child{font-family:var(--font-m);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg3);width:120px}
+.compare-table td{font-size:.875rem}
+
+/* ── GARAGE ─────────────────────────────────────────────── */
+.garage-grid{display:grid;gap:.75rem;grid-template-columns:1fr;margin-top:1.5rem}
+@media(min-width:600px){.garage-grid{grid-template-columns:1fr 1fr}}
+.garage-card{background:var(--bg2);border:1px solid var(--border);padding:1.25rem;transition:border-color .18s;position:relative}
+.garage-card.default{border-color:var(--amber3)}
+.garage-card-badge{position:absolute;top:.75rem;right:.75rem;font-family:var(--font-m);font-size:8px;letter-spacing:.2em;text-transform:uppercase;padding:.2rem .5rem;background:var(--amber3);color:var(--amber)}
+.garage-card-make{font-family:var(--font-m);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:.3rem}
+.garage-card-name{font-family:var(--font-d);font-size:1.15rem;font-weight:700;text-transform:uppercase;margin-bottom:.5rem}
+.garage-card-sub{font-size:.8rem;color:var(--fg2);line-height:1.55}
+.garage-card-actions{display:flex;gap:.5rem;margin-top:1rem}
+
+/* ── ADD VEHICLE MODAL ──────────────────────────────────── */
+.av-step{display:none}.av-step.on{display:block}
+.av-method{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem}
+.av-method-btn{background:var(--bg3);border:1px solid var(--border);padding:1.25rem;text-align:center;transition:all .18s;cursor:pointer}
+.av-method-btn:hover,.av-method-btn.on{border-color:var(--amber);background:rgba(232,160,48,.05)}
+.av-method-icon{font-size:1.5rem;margin-bottom:.5rem}
+.av-method-label{font-family:var(--font-d);font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.av-method-sub{font-family:var(--font-m);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);margin-top:.2rem}
+
+/* ── HOW IT WORKS ───────────────────────────────────────── */
+.steps{display:grid;grid-template-columns:1fr;gap:1px;background:var(--border)}
+@media(min-width:768px){.steps{grid-template-columns:repeat(3,1fr)}}
+.step{background:var(--bg);padding:2.5rem 2rem}
+.step-num{font-family:var(--font-d);font-size:3.5rem;font-weight:700;color:var(--amber);opacity:.6;line-height:1}
+.step-title{font-size:1.2rem;font-weight:700;text-transform:uppercase;margin-top:1rem;margin-bottom:.6rem}
+.step-body{color:var(--fg2);font-size:.9rem;line-height:1.65}
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+footer{padding:3rem 0}
+.foot-top{display:flex;flex-direction:column;gap:1.5rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+@media(min-width:640px){.foot-top{flex-direction:row;align-items:center;justify-content:space-between}}
+.brand{display:flex;align-items:center;gap:.75rem}
+.brand-sq{width:14px;height:14px;background:var(--amber)}
+.brand-name{font-family:var(--font-d);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em}
+.foot-nav{display:flex;flex-wrap:wrap;gap:1.5rem}
+.foot-nav a{font-family:var(--font-m);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg3);transition:color .2s}
+.foot-nav a:hover{color:var(--amber)}
+.foot-bot{margin-top:2rem;display:flex;flex-direction:column;gap:.5rem}
+@media(min-width:640px){.foot-bot{flex-direction:row;align-items:center;justify-content:space-between}}
+.foot-bot p{font-family:var(--font-m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--fg3)}
+
+/* ── NOTIFICATIONS ──────────────────────────────────────── */
+.toast-stack{position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border);padding:.75rem 1rem;font-family:var(--font-m);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--fg);animation:toastIn .25s ease;max-width:280px}
+.toast.success{border-color:rgba(48,160,96,.4);color:#60c080}
+.toast.error{border-color:rgba(200,64,64,.4);color:#e08080}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ── SELLER DASHBOARD ───────────────────────────────────── */
+.dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);margin-bottom:2rem}
+@media(min-width:640px){.dash-grid{grid-template-columns:repeat(4,1fr)}}
+.dash-stat{background:var(--bg2);padding:1.5rem 1.25rem}
+.dash-stat-num{font-family:var(--font-d);font-size:2rem;font-weight:700;color:var(--amber)}
+.dash-stat-lbl{font-family:var(--font-m);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg3);margin-top:.25rem}
+.inv-table{width:100%;border-collapse:collapse}
+.inv-table th,.inv-table td{padding:.75rem 1rem;border-bottom:1px solid var(--border);text-align:left;font-size:.875rem}
+.inv-table th{font-family:var(--font-m);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg3)}
+.inv-table tr:hover td{background:rgba(255,255,255,.02)}
+.stock-badge{display:inline-block;font-family:var(--font-m);font-size:8px;letter-spacing:.15em;text-transform:uppercase;padding:.15rem .45rem;border:1px solid}
+.stock-ok{border-color:rgba(48,160,96,.4);color:#60c080}
+.stock-low{border-color:rgba(232,160,48,.4);color:var(--amber)}
+.stock-out{border-color:rgba(200,64,64,.4);color:#d07070}
+
+/* ── NAV ────────────────────────────────────────────────── */
+nav{border-bottom:1px solid var(--border);background:rgba(11,11,11,.95);backdrop-filter:blur(8px);position:sticky;top:0;z-index:99}
+nav.show{display:block}
+.nav-inner{display:flex;align-items:center;gap:2rem;height:3.2rem;max-width:76rem;margin:0 auto;padding:0 1.5rem}
+.nav-logo{font-family:var(--font-d);font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;display:flex;align-items:center;gap:.5rem}
+.nav-sq{width:10px;height:10px;background:var(--amber)}
+.nav-links{display:flex;gap:1.5rem;flex:1}
+.nav-link{font-family:var(--font-m);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg3);transition:color .2s;padding:.2rem 0}
+.nav-link:hover,.nav-link.on{color:var(--amber)}
+.nav-right{display:flex;align-items:center;gap:.75rem;margin-left:auto}
+.nav-user{display:flex;align-items:center;gap:.5rem;font-family:var(--font-m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--fg2)}
+.nav-avatar{width:28px;height:28px;background:var(--amber3);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:var(--amber);font-family:var(--font-d)}
+
+/* ── PAGE VIEWS ─────────────────────────────────────────── */
+.page{display:none}.page.on{display:block}
+
+/* ── ADD PART FORM ──────────────────────────────────────── */
+.form-section{margin-bottom:2rem}
+.form-section-title{font-family:var(--font-d);font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid var(--border)}
+.form-grid-2{display:grid;gap:.75rem;grid-template-columns:1fr 1fr}
+.form-grid-3{display:grid;gap:.75rem;grid-template-columns:1fr 1fr 1fr}
+.AutoReviver-rows{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem}
+.AutoReviver-row{display:grid;gap:.5rem;grid-template-columns:80px 80px 1fr 1fr 1fr auto;background:var(--bg3);padding:.6rem .75rem;border:1px solid var(--border);align-items:center}
+.AutoReviver-row input{height:2.2rem;padding:0 .6rem;font-size:.8rem}
+.AutoReviver-remove{width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--fg3);border:1px solid var(--border);font-size:1rem;transition:all .18s}
+.AutoReviver-remove:hover{border-color:var(--red);color:var(--red)}
+
+/* auth */
+.auth-card{max-width:420px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);padding:2.5rem 2rem}
+.auth-logo{text-align:center;margin-bottom:2rem}
+.auth-title{font-family:var(--font-d);font-size:1.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.auth-sub{font-size:.875rem;color:var(--fg2)}
+.auth-form{display:flex;flex-direction:column;gap:1rem;margin-top:1.5rem}
+.auth-divider{display:flex;align-items:center;gap:.75rem;color:var(--fg3);font-family:var(--font-m);font-size:9px;letter-spacing:.18em;text-transform:uppercase;margin:.25rem 0}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.auth-link{font-family:var(--font-m);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);transition:opacity .2s}
+.auth-link:hover{opacity:.7}
+.role-select{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.25rem}
+.role-btn{background:var(--bg3);border:1px solid var(--border);padding:.85rem;text-align:center;transition:all .18s;cursor:pointer}
+.role-btn:hover,.role-btn.on{border-color:var(--amber);background:rgba(232,160,48,.06)}
+.role-btn-icon{font-size:1.3rem;margin-bottom:.3rem}
+.role-btn-label{font-family:var(--font-d);font-size:.85rem;font-weight:700;text-transform:uppercase}
+.role-btn-sub{font-family:var(--font-m);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);margin-top:.1rem}
+
+/* search sidebar (desktop) */
+.search-layout{display:grid;gap:2rem;grid-template-columns:1fr}
+@media(min-width:900px){.search-layout{grid-template-columns:220px 1fr}}
+.filter-sidebar{background:var(--bg2);border:1px solid var(--border);padding:1.25rem;height:fit-content;position:sticky;top:4rem}
+.filter-group{margin-bottom:1.5rem}
+.filter-title{font-family:var(--font-m);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--fg3);margin-bottom:.75rem}
+.filter-option{display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem;cursor:pointer}
+.filter-option input{accent-color:var(--amber)}
+.filter-option span{font-size:.85rem;color:var(--fg2);transition:color .15s}
+.filter-option:hover span{color:var(--fg)}
+.price-range{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.price-input{height:2.4rem;padding:0 .75rem;font-size:.85rem}
+
+/* ── UTILITIES ──────────────────────────────────────────── */
+.mt-1{margin-top:.5rem}.mt-2{margin-top:1rem}.mt-3{margin-top:1.5rem}.mt-4{margin-top:2rem}
+.flex{display:flex}.items-center{align-items:center}.gap-2{gap:.5rem}.gap-3{gap:.75rem}
+.text-right{text-align:right}
+.divider{height:1px;background:var(--border);margin:1.5rem 0}
+.badge{display:inline-block;font-family:var(--font-m);font-size:8px;letter-spacing:.15em;text-transform:uppercase;padding:.2rem .5rem;border:1px solid}
+.badge-amber{border-color:var(--amber3);color:var(--amber);background:rgba(232,160,48,.07)}
+.badge-green{border-color:rgba(48,160,96,.4);color:#60c080;background:rgba(48,160,96,.06)}
+
+/* ── IMAGE SCAN UPLOAD ──────────────────────────────────── */
+.img-scan-zone{border:2px dashed var(--border2);background:var(--bg3);padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.img-scan-zone:hover,.img-scan-zone.drag-over{border-color:var(--amber);background:rgba(232,160,48,.04)}
+.img-scan-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.img-scan-icon{font-size:2rem;margin-bottom:.5rem;color:var(--amber);opacity:.7}
+.img-scan-label{font-family:var(--font-d);font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.img-scan-sub{font-family:var(--font-m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--fg3);margin-top:.3rem}
+.img-scan-preview{position:relative;margin-top:.75rem;display:none}
+.img-scan-preview.show{display:block}
+.img-scan-preview img{width:100%;max-height:180px;object-fit:contain;border:1px solid var(--border);background:var(--bg2)}
+.img-scan-clear{position:absolute;top:.4rem;right:.4rem;width:24px;height:24px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.9rem;color:var(--fg3);cursor:pointer;transition:all .18s}
+.img-scan-clear:hover{border-color:var(--red);color:var(--red)}
+.img-scan-result{margin-top:.75rem;background:var(--bg2);border:1px solid var(--amber3);padding:1rem;display:none;animation:fadeUp .3s ease}
+.img-scan-result.show{display:block}
+.img-scan-result-title{font-family:var(--font-d);font-size:.9rem;font-weight:700;text-transform:uppercase;color:var(--amber);margin-bottom:.4rem}
+
+/* buyer image scan (search) */
+.buyer-scan-bar{background:var(--bg2);border:1px solid var(--border);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.buyer-scan-bar .img-scan-zone{flex:1;min-width:200px;padding:.85rem 1rem;text-align:left;display:flex;align-items:center;gap:.75rem}
+.buyer-scan-bar .img-scan-icon{font-size:1.3rem;margin:0;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- ── TOAST STACK ──────────────────────────────────────── -->
+<div class="toast-stack" id="toasts"></div>
+
+<!-- ── NAV (always visible) ───────────────────────────── -->
+<nav id="main-nav" style="display:block">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#" onclick="showPage('home')">
+      <div class="nav-sq"></div> AutoReviver/01
+    </a>
+    <div class="nav-links" id="nav-links-auth" style="display:none">
+      <a class="nav-link" href="#" onclick="showPage('search')">Search Parts</a>
+      <a class="nav-link" href="#" onclick="showPage('garage')">My Garage</a>
+      <a class="nav-link" id="nav-seller" href="#" onclick="showPage('seller')" style="display:none">Seller Dashboard</a>
+    </div>
+    <div class="nav-right">
+      <!-- Shown when signed OUT -->
+      <div id="nav-signed-out" style="display:flex;align-items:center;gap:.5rem">
+        <button class="btn btn-ghost btn-sm" onclick="showPage('auth')">Sign In</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('auth');setTimeout(showAuthRegister,50)">Create Account</button>
+      </div>
+      <!-- Shown when signed IN -->
+      <div id="nav-signed-in" style="display:none;align-items:center;gap:.75rem">
+        <div class="nav-user" id="nav-user-info">
+          <div class="nav-avatar" id="nav-avatar">?</div>
+          <span id="nav-username">Guest</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── VEHICLE BANNER ────────────────────────────────────── -->
+<div id="banner">
+  <div class="banner-inner">
+    <div class="banner-dot"></div>
+    <div id="banner-text">No vehicle selected</div>
+    <button class="banner-change" onclick="showPage('garage')">Change Vehicle</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE: HOME
+═════════════════════════════════════════════════════════ -->
+<div class="page on" id="page-home">
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="con hero-inner">
+    <div>
+      <div class="hero-eyebrow">
+        <div class="live-dot"></div>
+        <span class="mono xs up dim">Live AutoReviver verification engine</span>
+      </div>
+      <h1 class="hero-title">The right part.<br><span>First time.</span></h1>
+      <p class="hero-sub">Decode your VIN or select your vehicle. Every part in our catalog is filtered to your exact year, make, model, trim, and drivetrain. No guessing.</p>
+      <div class="hero-cta">
+        <button class="btn btn-primary btn-xl" onclick="scrollToLookup()">
+          <span id="cta-label">Find My Parts</span>
+          <span class="mono">→</span>
+        </button>
+        <button class="btn btn-ghost btn-lg" id="hero-create-account" onclick="showPage('auth');setTimeout(showAuthRegister,50)">Create Account</button>
+      </div>
+      <div class="hero-stats mt-4">
+        <span><span class="num">17</span><span class="lbl">Char VIN</span></span>
+        <span><span class="num">NHTSA</span><span class="lbl">Verified</span></span>
+        <span><span class="num">AI</span><span class="lbl">Parts Search</span></span>
+      </div>
+    </div>
+
+    <!-- VIN decoder card -->
+    <div class="decoder-card">
+      <div class="decoder-card-head">
+        <div class="decoder-card-icon">◆</div>
+        <div>
+          <div class="mono xs up" style="color:var(--amber)">Quick Decode</div>
+          <div class="mono xs dim">Identify your vehicle</div>
+        </div>
+      </div>
+      <div class="decoder-tabs">
+        <button class="dtab on" data-dtab="vin" onclick="switchDecoderTab('vin',this)">VIN</button>
+        <button class="dtab" data-dtab="manual" onclick="switchDecoderTab('manual',this)">Manual</button>
+      </div>
+
+      <!-- VIN sub-tab -->
+      <div id="dtab-vin">
+        <div class="vin-row">
+          <div class="vin-wrap">
+            <input class="inp inp-mono" id="vin-q" maxlength="17" placeholder="Enter VIN..." oninput="onVinInput()" onkeydown="if(e&&e.key==='Enter')decodeVin()"/>
+            <span class="vin-count mono xs" id="vin-cnt">0/17</span>
+          </div>
+          <input class="inp inp-mono" id="year-q" type="number" min="1990" max="2030" placeholder="YEAR" style="width:90px"/>
+        </div>
+        <div class="chips" id="vin-examples"></div>
+        <div class="error-box" id="vin-err"></div>
+        <div class="loading" id="vin-load"><div class="spin"></div><span>Querying NHTSA vPIC…</span></div>
+        <div id="vin-result-mini"></div>
+        <button class="btn btn-primary btn-md mt-2" style="width:100%" id="decode-btn" onclick="decodeVin()" disabled>Decode VIN</button>
+      </div>
+
+      <!-- Manual sub-tab -->
+      <div id="dtab-manual" style="display:none">
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          <select class="sel" id="hm-year" onchange="onHMYear()"><option value="">Year…</option></select>
+          <select class="sel" id="hm-make" onchange="onHMMake()" disabled><option value="">Make…</option></select>
+          <select class="sel" id="hm-model" disabled><option value="">Model…</option></select>
+          <input class="inp" id="hm-trim" placeholder="Trim (optional)" disabled/>
+          <button class="btn btn-primary btn-md" style="width:100%" onclick="confirmManualHero()" id="hm-submit" disabled>Confirm Vehicle</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOOKUP section -->
+<section class="sec" id="lookup">
+  <div class="con">
+    <p class="step-tag">[ 01 / Identify ]</p>
+    <h2 class="sec-title">Lock in your vehicle</h2>
+    <p class="sec-sub">We use NHTSA vPIC to decode every digit of your VIN — wrong-fit parts stop here.</p>
+
+    <div class="tab-strip">
+      <button class="tab on" onclick="switchTab('vin',this)">VIN Decode</button>
+      <button class="tab" onclick="switchTab('manual',this)">Manual Entry</button>
+    </div>
+
+    <!-- VIN tab -->
+    <div class="tab-panel on" id="tp-vin">
+      <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start">
+        <div class="vin-wrap" style="flex:1;min-width:200px">
+          <input class="inp inp-mono" id="vin-input" maxlength="17" placeholder="ENTER 17-CHAR VIN..." oninput="onVinInput2()" onkeydown="if(event.key==='Enter')decodeVin2()"/>
+          <span class="vin-count mono xs" id="vin-cnt2">0/17</span>
+        </div>
+        <input class="inp inp-mono" id="year-input" type="number" min="1990" max="2030" placeholder="YEAR" style="width:110px"/>
+        <button class="btn btn-primary btn-lg" id="decode-btn2" onclick="decodeVin2()" disabled>Decode VIN</button>
+      </div>
+      <div class="chips" id="vin-examples2"></div>
+      <div class="error-box" id="vin-err2"></div>
+      <div class="loading" id="vin-load2"><div class="spin"></div><span class="mono xs up">Querying NHTSA vPIC database…</span></div>
+      <div id="vin-result"></div>
+    </div>
+
+    <!-- Manual tab -->
+    <div class="tab-panel" id="tp-manual">
+      <div class="manual-grid">
+        <label class="field"><span class="field-lbl">Year</span><select class="sel" id="m-year" onchange="onMYear()"><option value="">Select year…</option></select></label>
+        <label class="field"><span class="field-lbl">Make</span><select class="sel" id="m-make" disabled onchange="onMMake()"><option value="">Select make…</option></select></label>
+        <label class="field"><span class="field-lbl">Model</span><select class="sel" id="m-model" disabled onchange="onMModel()"><option value="">Select model…</option></select></label>
+        <label class="field"><span class="field-lbl">Trim</span><input class="inp" id="m-trim" placeholder="e.g. xDrive28i" disabled/></label>
+      </div>
+      <button class="more-toggle" onclick="toggleMore()" id="more-tog">+ Add more details</button>
+      <div class="manual-more" id="m-more">
+        <label class="field"><span class="field-lbl">Engine</span><input class="inp" id="m-engine" placeholder="3.0L I6"/></label>
+        <label class="field"><span class="field-lbl">Drive</span><input class="inp" id="m-drive" placeholder="AWD"/></label>
+        <label class="field"><span class="field-lbl">Body</span><input class="inp" id="m-body" placeholder="SUV"/></label>
+      </div>
+      <button class="btn btn-primary btn-lg mt-3" id="m-submit" onclick="submitManual()" disabled>Confirm Vehicle</button>
+    </div>
+  </div>
+</section>
+
+<!-- PARTS section -->
+<section class="sec sec-alt" id="parts-sec">
+  <div class="con">
+    <p class="step-tag">[ 02 / Search ]</p>
+    <h2 class="sec-title">Browse AutoReviver-locked parts</h2>
+    <p class="sec-sub" id="parts-sub">Confirm a vehicle above to unlock the AI-powered parts catalog.</p>
+
+    <div class="parts-wrap">
+      <div class="parts-lock" id="parts-lock">
+        <div class="parts-lock-msg">◆ Confirm a vehicle to unlock</div>
+        <button class="btn btn-outline btn-lg" onclick="scrollToLookup()">Select Vehicle</button>
+      </div>
+      <div class="parts-body locked" id="parts-body">
+        <!-- Buyer Image Scan -->
+        <div class="buyer-scan-bar mt-3" id="buyer-scan-bar">
+          <div class="img-scan-zone" id="buyer-scan-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleBuyerImgDrop(event)" style="flex:1;min-width:180px">
+            <input type="file" accept="image/*" onchange="handleBuyerImgSelect(event)" id="buyer-img-input"/>
+            <div class="img-scan-icon">📷</div>
+            <div style="flex:1">
+              <div class="img-scan-label">Identify part from photo</div>
+              <div class="img-scan-sub">Take or upload a photo of the part you need</div>
+            </div>
+          </div>
+          <div id="buyer-scan-preview-wrap" style="display:none;align-items:center;gap:.75rem;flex-shrink:0">
+            <img id="buyer-scan-img" src="" alt="" style="height:56px;width:72px;object-fit:contain;border:1px solid var(--border);background:var(--bg3)"/>
+            <button class="img-scan-clear" style="position:static;flex-shrink:0" onclick="clearBuyerScan()">✕</button>
+          </div>
+          <div class="loading" id="buyer-scan-load" style="margin:0;padding:0;flex-shrink:0"><div class="spin"></div><span class="mono xs up" style="white-space:nowrap">AI scanning…</span></div>
+        </div>
+        <div class="img-scan-result" id="buyer-scan-result" style="margin:0 0 .75rem">
+          <div class="img-scan-result-title">◆ AI Identified Part</div>
+          <div id="buyer-scan-text" style="font-size:.875rem;color:var(--fg2);line-height:1.6"></div>
+          <button class="btn btn-primary btn-sm" style="margin-top:.75rem" onclick="applyBuyerScanResult()">Search This Part →</button>
+        </div>
+        <div class="parts-search mt-3">
+          <input class="inp" id="parts-q" placeholder="Search parts for your vehicle…"/>
+          <button class="btn btn-primary btn-lg" onclick="runAISearch()">Search</button>
+        </div>
+        <div class="cat-grid" id="cat-grid"></div>
+        <div class="ai-results" id="ai-results">
+          <div class="ai-result-head">
+            <div>
+              <div class="mono xs up accent" id="ai-result-label">Results</div>
+              <div class="mono xs dim mt-1" id="ai-result-sub"></div>
+            </div>
+            <div class="ai-streaming mono xs up accent" id="ai-stream-badge" style="display:none">⟳ AI Searching…</div>
+          </div>
+          <div class="parts-list" id="parts-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="sec">
+  <div class="con">
+    <p class="step-tag">[ 03 / Process ]</p>
+    <h2 class="sec-title mb-3">How it works</h2>
+    <div class="steps">
+      <div class="step"><div class="step-num">01</div><h3 class="step-title">Enter VIN or pick your build</h3><p class="step-body">We decode your exact year, make, model, trim, and engine via NHTSA vPIC — the same system used by dealers and mechanics.</p></div>
+      <div class="step"><div class="step-num">02</div><h3 class="step-title">Browse guaranteed-fit parts</h3><p class="step-body">Our AI searches and filters every result to your specific vehicle. OEM numbers, AutoReviver ranges, trim restrictions — all checked automatically.</p></div>
+      <div class="step"><div class="step-num">03</div><h3 class="step-title">Compare & order with confidence</h3><p class="step-body">Side-by-side comparison with AutoReviver warnings. If it's in the results, it fits. No guessing, no wrong parts, no returns.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="con">
+    <div class="foot-top">
+      <div class="brand"><div class="brand-sq"></div><span class="brand-name">AutoReviver/01</span></div>
+      <nav class="foot-nav">
+        <a href="#" onclick="showPage('auth')">Sign In</a>
+        <a href="#" onclick="scrollToLookup()">VIN Decode</a>
+        <a href="#" onclick="showPage('search')">Search Parts</a>
+        <a href="#" onclick="showPage('garage')">My Garage</a>
+      </nav>
+    </div>
+    <div class="foot-bot">
+      <p>Powered by NHTSA vPIC API · AI Parts Search</p>
+      <p>© <span id="yr"></span> AutoReviver/01 — AutoReviver-verified parts engine</p>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /page-home -->
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE: AUTH
+═════════════════════════════════════════════════════════ -->
+<div class="page" id="page-auth" style="min-height:100vh;display:none;padding:5rem 1.5rem">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div style="display:inline-flex;align-items:center;gap:.6rem">
+        <div class="brand-sq"></div><span class="brand-name">AutoReviver/01</span>
+      </div>
+    </div>
+    <div id="auth-login">
+      <div class="auth-title">Sign In</div>
+      <p class="auth-sub">Welcome back. Enter your credentials to access your garage and saved parts.</p>
+      <div class="auth-form">
+        <label class="field"><span class="field-lbl">Email</span><input class="inp" id="login-email" type="email" placeholder="you@example.com"/></label>
+        <label class="field"><span class="field-lbl">Password</span><input class="inp" id="login-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></label>
+        <button class="btn btn-primary btn-lg" style="width:100%" onclick="doLogin()">Sign In →</button>
+        <div class="auth-divider">or</div>
+        <button class="btn btn-ghost btn-md" style="width:100%;justify-content:center" onclick="showAuthRegister()">Create Account</button>
+        <div style="text-align:center"><a class="auth-link" href="#" onclick="showAuthForgot()">Forgot password?</a></div>
+      </div>
+      <div class="divider"></div>
+      <div style="text-align:center"><a class="auth-link" href="#" onclick="showPage('home')">← Continue without account</a></div>
+    </div>
+    <div id="auth-register" style="display:none">
+      <div class="auth-title">Create Account</div>
+      <p class="auth-sub">Join the marketplace. Buy or sell AutoReviver-verified car parts.</p>
+      <div class="auth-form">
+        <div class="form-grid-2">
+          <label class="field"><span class="field-lbl">First name</span><input class="inp" id="reg-first" placeholder="Alex"/></label>
+          <label class="field"><span class="field-lbl">Last name</span><input class="inp" id="reg-last" placeholder="Smith"/></label>
+        </div>
+        <label class="field"><span class="field-lbl">Email</span><input class="inp" id="reg-email" type="email" placeholder="you@example.com"/></label>
+        <label class="field"><span class="field-lbl">Password</span><input class="inp" id="reg-pass" type="password" placeholder="Min 8 chars"/></label>
+        <div>
+          <span class="field-lbl" style="display:block;margin-bottom:.5rem">Account Type</span>
+          <div class="role-select">
+            <div class="role-btn on" id="role-buyer" onclick="selectRole('buyer')">
+              <div class="role-btn-icon">🛒</div>
+              <div class="role-btn-label">Buyer</div>
+              <div class="role-btn-sub">Find & buy parts</div>
+            </div>
+            <div class="role-btn" id="role-seller" onclick="selectRole('seller')">
+              <div class="role-btn-icon">🔧</div>
+              <div class="role-btn-label">Seller</div>
+              <div class="role-btn-sub">List & sell parts</div>
+            </div>
+          </div>
+        </div>
+        <div id="seller-fields" style="display:none">
+          <label class="field"><span class="field-lbl">Business Name</span><input class="inp" id="reg-biz" placeholder="Smith Auto Parts"/></label>
+        </div>
+        <button class="btn btn-primary btn-lg" style="width:100%" onclick="doRegister()">Create Account →</button>
+        <div style="text-align:center"><a class="auth-link" href="#" onclick="showAuthLogin()">Already have an account? Sign in</a></div>
+      </div>
+    </div>
+    <div id="auth-forgot" style="display:none">
+      <div class="auth-title">Reset Password</div>
+      <p class="auth-sub">Enter your email and we'll send reset instructions.</p>
+      <div class="auth-form">
+        <label class="field"><span class="field-lbl">Email</span><input class="inp" id="forgot-email" type="email" placeholder="you@example.com"/></label>
+        <button class="btn btn-primary btn-lg" style="width:100%" onclick="doForgot()">Send Reset Link</button>
+        <div style="text-align:center"><a class="auth-link" href="#" onclick="showAuthLogin()">← Back to sign in</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE: GARAGE
+═════════════════════════════════════════════════════════ -->
+<div class="page" id="page-garage" style="display:none;min-height:100vh;padding:4rem 0">
+  <div class="con">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <p class="step-tag">My Garage</p>
+        <h1 class="sec-title">Your Vehicles</h1>
+        <p class="sec-sub">Add and manage vehicles to unlock AutoReviver-verified parts search.</p>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="openAddVehicle()">+ Add Vehicle</button>
+    </div>
+    <div class="garage-grid" id="garage-grid"></div>
+    <div class="mt-4" style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-md" onclick="showPage('home')">← Back to Search</button>
+      <button class="btn btn-outline btn-md" onclick="showPage('search')">Browse Parts →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE: SEARCH
+═════════════════════════════════════════════════════════ -->
+<div class="page" id="page-search" style="display:none;min-height:100vh;padding:4rem 0">
+  <div class="con">
+    <p class="step-tag">Parts Catalog</p>
+    <h1 class="sec-title">Search Parts</h1>
+    <p class="sec-sub" id="search-page-sub">AI-powered, AutoReviver-verified search.</p>
+    <div class="search-layout mt-3">
+      <div class="filter-sidebar">
+        <div class="mono xs up dim" style="margin-bottom:1rem">Filters</div>
+        <div class="filter-group">
+          <div class="filter-title">Category</div>
+          <div id="filter-cats"></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-title">Part Type</div>
+          <label class="filter-option"><input type="checkbox" value="OEM" onchange="applyFilters()"><span>OEM</span></label>
+          <label class="filter-option"><input type="checkbox" value="Aftermarket" onchange="applyFilters()"><span>Aftermarket</span></label>
+          <label class="filter-option"><input type="checkbox" value="Performance" onchange="applyFilters()"><span>Performance</span></label>
+        </div>
+        <div class="filter-group">
+          <div class="filter-title">Condition</div>
+          <label class="filter-option"><input type="checkbox" value="New" onchange="applyFilters()"><span>New</span></label>
+          <label class="filter-option"><input type="checkbox" value="Used" onchange="applyFilters()"><span>Used</span></label>
+          <label class="filter-option"><input type="checkbox" value="Refurbished" onchange="applyFilters()"><span>Refurbished</span></label>
+        </div>
+        <div class="filter-group">
+          <div class="filter-title">Price Range</div>
+          <div class="price-range">
+            <input class="inp price-input" id="f-min" type="number" placeholder="Min £" onchange="applyFilters()"/>
+            <input class="inp price-input" id="f-max" type="number" placeholder="Max £" onchange="applyFilters()"/>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="clearFilters()">Clear All</button>
+      </div>
+      <div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:stretch">
+          <div class="img-scan-zone" id="search-page-scan-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleSearchPageImgDrop(event)" style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;flex-shrink:0">
+            <input type="file" accept="image/*" onchange="handleSearchPageImgSelect(event)" id="search-page-img-input"/>
+            <div class="img-scan-icon" style="font-size:1.2rem;margin:0">📷</div>
+            <span class="img-scan-label" style="font-size:.75rem">Photo Search</span>
+          </div>
+          <input class="inp" id="search-q" placeholder="Search parts…" style="flex:1;min-width:180px" onkeydown="if(event.key==='Enter')runSearchPage()"/>
+          <button class="btn btn-primary btn-lg" onclick="runSearchPage()">Search</button>
+        </div>
+        <div id="search-page-scan-preview-wrap" style="display:none;align-items:center;gap:.75rem;margin-bottom:.75rem">
+          <img id="search-page-scan-img" src="" alt="" style="height:52px;width:68px;object-fit:contain;border:1px solid var(--border);background:var(--bg3)"/>
+          <div class="loading" id="search-page-scan-load" style="margin:0;padding:0"><div class="spin"></div><span class="mono xs up">AI scanning…</span></div>
+          <button class="img-scan-clear" style="position:static" onclick="clearSearchPageScan()">✕</button>
+        </div>
+        <div class="img-scan-result" id="search-page-scan-result" style="margin-bottom:1rem">
+          <div class="img-scan-result-title">◆ AI Identified Part</div>
+          <div id="search-page-scan-text" style="font-size:.875rem;color:var(--fg2);line-height:1.6"></div>
+          <button class="btn btn-primary btn-sm" style="margin-top:.75rem" onclick="applySearchPageScanResult()">Search This Part →</button>
+        </div>
+        <div class="parts-list" id="search-results">
+          <div style="padding:3rem 0;text-align:center;color:var(--fg3);font-family:var(--font-m);font-size:10px;letter-spacing:.2em;text-transform:uppercase">Search for parts above — results are filtered to your vehicle.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE: SELLER DASHBOARD
+═════════════════════════════════════════════════════════ -->
+<div class="page" id="page-seller" style="display:none;min-height:100vh;padding:4rem 0">
+  <div class="con">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:2rem">
+      <div>
+        <p class="step-tag">Seller Dashboard</p>
+        <h1 class="sec-title" id="seller-biz-name">Your Inventory</h1>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="showPage('add-part')">+ Add Part</button>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-stat"><div class="dash-stat-num" id="ds-parts">0</div><div class="dash-stat-lbl">Active Listings</div></div>
+      <div class="dash-stat"><div class="dash-stat-num" id="ds-AutoRevivers">0</div><div class="dash-stat-lbl">AutoReviver Rules</div></div>
+      <div class="dash-stat"><div class="dash-stat-num" id="ds-views">—</div><div class="dash-stat-lbl">Total Views</div></div>
+      <div class="dash-stat"><div class="dash-stat-num" id="ds-rev">£0</div><div class="dash-stat-lbl">Est. Revenue</div></div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="inv-table">
+        <thead><tr><th>Part</th><th>Brand</th><th>Type</th><th>Price</th><th>Stock</th><th>AutoRevivers</th><th></th></tr></thead>
+        <tbody id="inv-tbody">
+          <tr><td colspan="7" style="text-align:center;color:var(--fg3);font-family:var(--font-m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:3rem">No listings yet — add your first part</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE: ADD PART
+═════════════════════════════════════════════════════════ -->
+<div class="page" id="page-add-part" style="display:none;min-height:100vh;padding:4rem 0">
+  <div class="con" style="max-width:860px">
+    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:2rem">
+      <button class="btn btn-ghost btn-sm" onclick="showPage('seller')">← Back</button>
+      <div>
+        <p class="step-tag">Seller</p>
+        <h1 class="sec-title">Add New Part</h1>
+      </div>
+    </div>
+
+    <div class="form-section" id="seller-img-scan-section">
+      <div class="form-section-title">🔍 AI Image Scan <span class="badge badge-amber" style="margin-left:.5rem;vertical-align:middle">NEW</span></div>
+      <p class="dim" style="font-size:.875rem;margin-bottom:1rem;line-height:1.65">Upload a photo of the part and our AI will automatically identify it and fill in the details below.</p>
+      <div class="img-scan-zone" id="seller-scan-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleSellerImgDrop(event)">
+        <input type="file" accept="image/*" onchange="handleSellerImgSelect(event)" id="seller-img-input"/>
+        <div class="img-scan-icon">📷</div>
+        <div class="img-scan-label">Drop part image here or click to upload</div>
+        <div class="img-scan-sub">JPG · PNG · WEBP · up to 10MB</div>
+      </div>
+      <div class="img-scan-preview" id="seller-scan-preview">
+        <img id="seller-scan-img" src="" alt="Part preview"/>
+        <button class="img-scan-clear" onclick="clearSellerScan()" title="Remove image">✕</button>
+      </div>
+      <div class="loading" id="seller-scan-load" style="margin-top:.75rem"><div class="spin"></div><span class="mono xs up">AI scanning image…</span></div>
+      <div class="img-scan-result" id="seller-scan-result">
+        <div class="img-scan-result-title">◆ AI Identified Part</div>
+        <div id="seller-scan-text" style="font-size:.875rem;color:var(--fg2);line-height:1.6"></div>
+        <button class="btn btn-primary btn-sm" style="margin-top:.75rem" onclick="applySellerScanResult()">Apply to Form →</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Basic Information</div>
+      <div style="display:flex;flex-direction:column;gap:.75rem">
+        <label class="field"><span class="field-lbl">Part Title *</span><input class="inp" id="p-title" placeholder="e.g. Front Brake Pad Set"/></label>
+        <div class="form-grid-3">
+          <label class="field"><span class="field-lbl">SKU *</span><input class="inp inp-mono" id="p-sku" placeholder="BRK-001"/></label>
+          <label class="field"><span class="field-lbl">Brand *</span><input class="inp" id="p-brand" placeholder="Brembo"/></label>
+          <label class="field"><span class="field-lbl">MPN</span><input class="inp" id="p-mpn" placeholder="P85075N"/></label>
+        </div>
+        <div class="form-grid-2">
+          <label class="field"><span class="field-lbl">OEM Number</span><input class="inp" id="p-oem" placeholder="34116858652"/></label>
+          <label class="field"><span class="field-lbl">Category</span>
+            <select class="sel" id="p-cat">
+              <option value="">Select…</option>
+              <option>Engine &amp; Drivetrain</option>
+              <option>Brakes &amp; Suspension</option>
+              <option>Filters &amp; Fluids</option>
+              <option>Electrical &amp; Lighting</option>
+              <option>Body &amp; Exterior</option>
+              <option>Interior &amp; Trim</option>
+              <option>Exhaust</option>
+              <option>Tyres &amp; Wheels</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-grid-3">
+          <label class="field"><span class="field-lbl">Part Type</span>
+            <select class="sel" id="p-type"><option>OEM</option><option selected>Aftermarket</option><option>Performance</option><option>Remanufactured</option></select>
+          </label>
+          <label class="field"><span class="field-lbl">Condition</span>
+            <select class="sel" id="p-cond"><option selected>New</option><option>Used</option><option>Refurbished</option></select>
+          </label>
+          <label class="field"><span class="field-lbl">Warranty (months)</span><input class="inp" id="p-warranty" type="number" placeholder="12"/></label>
+        </div>
+        <label class="field"><span class="field-lbl">Description</span><textarea class="inp" id="p-desc" rows="3" style="height:auto;padding:.75rem 1rem;resize:vertical" placeholder="Describe the part, what it replaces, key specs…"></textarea></label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Pricing & Stock</div>
+      <div class="form-grid-3">
+        <label class="field"><span class="field-lbl">Price (£) *</span><input class="inp" id="p-price" type="number" step="0.01" placeholder="89.99"/></label>
+        <label class="field"><span class="field-lbl">Compare Price (£)</span><input class="inp" id="p-msrp" type="number" step="0.01" placeholder="129.99"/></label>
+        <label class="field"><span class="field-lbl">Stock Qty *</span><input class="inp" id="p-stock" type="number" placeholder="10"/></label>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">AutoReviver Compatibility</div>
+      <p class="dim" style="font-size:.875rem;margin-bottom:1rem;line-height:1.65">Define which vehicles this part fits. Leave Trim/Drive blank to match all trims/drivetrains of that model. Add multiple rows for different compatible vehicle ranges.</p>
+      <div class="AutoReviver-rows" id="AutoReviver-rows">
+        <div style="display:grid;gap:.5rem;grid-template-columns:80px 80px 1fr 1fr 1fr auto;background:var(--bg3);padding:.5rem .75rem;border-bottom:1px solid var(--border)">
+          <span class="mono xs up dim">From</span><span class="mono xs up dim">To</span>
+          <span class="mono xs up dim">Make</span><span class="mono xs up dim">Model</span>
+          <span class="mono xs up dim">Trim/Drive</span><span></span>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="addAutoReviverRow()">+ Add Vehicle Range</button>
+    </div>
+
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;padding-top:1rem;border-top:1px solid var(--border)">
+      <button class="btn btn-ghost btn-lg" onclick="showPage('seller')">Cancel</button>
+      <button class="btn btn-outline btn-lg" onclick="savePart(false)">Save Draft</button>
+      <button class="btn btn-primary btn-lg" onclick="savePart(true)">Publish Part →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     ADD VEHICLE MODAL
+═══════════════════════════════════════════════ -->
+<div class="modal-bg" id="add-vehicle-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="sec-title" style="font-size:1.25rem">Add Vehicle to Garage</h3>
+      <button class="modal-close" onclick="closeModal('add-vehicle-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="av-step on" id="av-method-step">
+        <p class="dim" style="font-size:.875rem;margin-bottom:1rem">How would you like to identify your vehicle?</p>
+        <div class="av-method">
+          <div class="av-method-btn on" id="av-vin-btn" onclick="selectAVMethod('vin')">
+            <div class="av-method-icon">🔎</div>
+            <div class="av-method-label">VIN Decode</div>
+            <div class="av-method-sub">Most accurate</div>
+          </div>
+          <div class="av-method-btn" id="av-manual-btn" onclick="selectAVMethod('manual')">
+            <div class="av-method-icon">✏️</div>
+            <div class="av-method-label">Manual Entry</div>
+            <div class="av-method-sub">Pick year/make/model</div>
+          </div>
+        </div>
+        <div id="av-vin-form" class="mt-3">
+          <label class="field"><span class="field-lbl">Vehicle Nickname (optional)</span><input class="inp" id="av-label" placeholder="My Daily, Track Car…"/></label>
+          <div class="vin-row mt-2">
+            <div class="vin-wrap"><input class="inp inp-mono" id="av-vin" maxlength="17" placeholder="Enter VIN…" oninput="document.getElementById('av-decode-btn').disabled=this.value.trim().length<8"/><span class="vin-count mono xs" id="av-vin-cnt">0/17</span></div>
+            <input class="inp inp-mono" id="av-year" type="number" min="1990" max="2030" placeholder="YEAR" style="width:90px"/>
+          </div>
+          <div class="error-box" id="av-err"></div>
+          <div class="loading" id="av-load"><div class="spin"></div><span class="mono xs up">Querying NHTSA…</span></div>
+          <div id="av-result"></div>
+          <button class="btn btn-primary btn-lg mt-3" id="av-decode-btn" style="width:100%" onclick="decodeAVVin()" disabled>Decode VIN</button>
+        </div>
+        <div id="av-manual-form" style="display:none" class="mt-3">
+          <label class="field mb-2"><span class="field-lbl">Nickname</span><input class="inp" id="av-label2" placeholder="My Daily…"/></label>
+          <div style="display:flex;flex-direction:column;gap:.6rem;margin-top:.75rem">
+            <select class="sel" id="av-m-year" onchange="onAVYear()"><option value="">Year…</option></select>
+            <select class="sel" id="av-m-make" disabled onchange="onAVMake()"><option value="">Make…</option></select>
+            <select class="sel" id="av-m-model" disabled><option value="">Model…</option></select>
+            <input class="inp" id="av-m-trim" placeholder="Trim (optional)" disabled/>
+            <button class="btn btn-primary btn-lg" style="width:100%" onclick="saveManualGarage()" id="av-m-submit" disabled>Add to Garage</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARE MODAL -->
+<div class="modal-bg" id="compare-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="sec-title" style="font-size:1.25rem">Part Comparison</h3>
+      <button class="modal-close" onclick="closeModal('compare-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="compare-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARE BAR -->
+<div class="compare-bar" id="compare-bar">
+  <div class="compare-count" id="compare-count">0/4</div>
+  <div class="compare-items" id="compare-items-list"></div>
+  <button class="btn btn-ghost btn-sm" onclick="clearCompare()">Clear</button>
+  <button class="btn btn-primary btn-md" onclick="openCompare()">Compare →</button>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+let state = {
+  vehicle: null,
+  user: null,
+  garage: [],
+  compare: [],
+  parts: [],
+  filters: {},
+  avMethod: 'vin',
+  selectedRole: 'buyer',
+  inventory: [],
+};
+
+const MAKES_MODELS = {
+  Toyota:['Corolla','Camry','RAV4','Yaris','Land Cruiser','Hilux','Supra'],
+  Honda:['Civic','Accord','CR-V','Jazz','HR-V','NSX'],
+  Ford:['F-150','Focus','Fiesta','Mustang','Ranger','Explorer','Transit'],
+  BMW:['1 Series','2 Series','3 Series','5 Series','7 Series','X1','X3','X5','M3','M5'],
+  'Mercedes-Benz':['A-Class','C-Class','E-Class','S-Class','GLC','GLE','Sprinter'],
+  Volkswagen:['Golf','Polo','Passat','Tiguan','Transporter','ID.4'],
+  Audi:['A1','A3','A4','A5','Q3','Q5','Q7','RS3','RS6','TT'],
+  Nissan:['Qashqai','Micra','Juke','Navara','Leaf','370Z','GT-R'],
+  Mazda:['MX-5','CX-5','3','6','CX-30'],
+  Subaru:['Impreza','Outback','Forester','WRX','BRZ','Legacy'],
+  Hyundai:['i20','i30','Tucson','Santa Fe','Kona','IONIQ'],
+  Kia:['Ceed','Sportage','Stinger','EV6','Picanto'],
+  Porsche:['911','Cayenne','Macan','Panamera','Taycan','718'],
+  Jeep:['Wrangler','Cherokee','Grand Cherokee','Renegade'],
+  Chevrolet:['Silverado','Camaro','Corvette','Suburban','Colorado'],
+};
+
+const CATEGORIES = [
+  ['Engine & Drivetrain','ENG','⚙️'],['Brakes & Suspension','BRK','🔩'],
+  ['Filters & Fluids','FLU','💧'],['Electrical & Lighting','ELC','⚡'],
+  ['Body & Exterior','BDY','🚗'],['Interior & Trim','INT','🪑'],
+  ['Exhaust','EXH','💨'],['Tyres & Wheels','WHL','⭕'],
+];
+
+const EXAMPLE_VINS = [
+  {vin:'1HGBH41JXMN109186',label:'Honda Civic'},
+  {vin:'2T1BURHE0JC043197',label:'Toyota Corolla'},
+  {vin:'1FTFW1ET5DFC10312',label:'Ford F-150'},
+  {vin:'WBAPH7C51BE678529',label:'BMW 3 Series'},
+];
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('yr').textContent = new Date().getFullYear();
+  buildYearSelects();
+  buildMakeSelects();
+  buildExampleChips();
+  buildCatGrid();
+  buildFilterCats();
+  addAutoReviverRow();
+  loadState();
+  renderAll();
+});
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('AutoReviver01_state');
+    if (s) { const parsed = JSON.parse(s); Object.assign(state, parsed); }
+  } catch(e){}
+}
+function saveState() {
+  try { localStorage.setItem('AutoReviver01_state', JSON.stringify(state)); } catch(e){}
+}
+function renderAll() {
+  renderBanner();
+  renderNav();
+  renderGarage();
+  renderInventory();
+  renderCompareBar();
+  updateCTALabel();
+  updatePartsLock();
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAGE ROUTING
+══════════════════════════════════════════════════════════ */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('on'); p.style.display = 'none'; });
+  const el = document.getElementById('page-'+id);
+  if (el) { el.classList.add('on'); el.style.display = 'block'; }
+  window.scrollTo(0,0);
+  if (id === 'search') renderSearchPage();
+  if (id === 'seller') renderInventory();
+}
+
+/* ══════════════════════════════════════════════════════════
+   BUILD SELECTS
+══════════════════════════════════════════════════════════ */
+function buildYearSelects() {
+  const cur = new Date().getFullYear();
+  const years = Array.from({length: cur-1989}, (_,i) => cur-i);
+  ['m-year','hm-year','av-m-year'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    const base = el.innerHTML;
+    years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; el.appendChild(o); });
+  });
+}
+function buildMakeSelects() {
+  ['m-make','hm-make','av-m-make'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    const base = `<option value="">Select make…</option>`;
+    el.innerHTML = base + Object.keys(MAKES_MODELS).sort().map(m => `<option>${m}</option>`).join('');
+  });
+}
+function populateModels(makeId, modelId) {
+  const mk = document.getElementById(makeId)?.value;
+  const el = document.getElementById(modelId); if(!el) return;
+  el.innerHTML = `<option value="">Select model…</option>` +
+    (MAKES_MODELS[mk]||[]).sort().map(m => `<option>${m}</option>`).join('');
+  el.disabled = !mk;
+}
+function buildExampleChips() {
+  ['vin-examples','vin-examples2'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    EXAMPLE_VINS.forEach(ex => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.textContent = ex.label;
+      b.onclick = () => {
+        const i1 = document.getElementById('vin-input'), i2 = document.getElementById('vin-q');
+        if(i1){i1.value=ex.vin;i1.dispatchEvent(new Event('input'));}
+        if(i2){i2.value=ex.vin;i2.dispatchEvent(new Event('input'));}
+        if(id==='vin-examples') decodeVin2(); else decodeVin();
+      };
+      el.appendChild(b);
+    });
+  });
+}
+function buildCatGrid() {
+  const g = document.getElementById('cat-grid'); if(!g) return;
+  g.innerHTML = CATEGORIES.map(([n,c,emoji]) =>
+    `<button class="cat-btn" onclick="searchByCategory('${n}')">
+      <div class="cat-top"><span class="cat-glyph">${emoji}</span><span class="cat-code mono xs up">${c}</span></div>
+      <span class="cat-name">${n}</span>
+    </button>`).join('');
+}
+function buildFilterCats() {
+  const el = document.getElementById('filter-cats'); if(!el) return;
+  el.innerHTML = CATEGORIES.map(([n]) =>
+    `<label class="filter-option"><input type="checkbox" value="${n}" onchange="applyFilters()"><span>${n}</span></label>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   VIN DECODE — HERO
+══════════════════════════════════════════════════════════ */
+function onVinInput() {
+  const v = document.getElementById('vin-q').value.toUpperCase();
+  document.getElementById('vin-q').value = v;
+  document.getElementById('vin-cnt').textContent = `${v.length}/17`;
+  document.getElementById('decode-btn').disabled = v.trim().length < 8;
+  document.getElementById('vin-err').classList.remove('show');
+}
+async function decodeVin() {
+  const vin = document.getElementById('vin-q').value.trim().toUpperCase();
+  const yr = document.getElementById('year-q').value.trim();
+  await _decodeVin(vin, yr, 'vin-err', 'vin-load', 'vin-result-mini', true);
+}
+
+/* ══════════════════════════════════════════════════════════
+   VIN DECODE — MAIN SECTION
+══════════════════════════════════════════════════════════ */
+function onVinInput2() {
+  const v = document.getElementById('vin-input').value.toUpperCase();
+  document.getElementById('vin-input').value = v;
+  document.getElementById('vin-cnt2').textContent = `${v.length}/17`;
+  document.getElementById('decode-btn2').disabled = v.trim().length < 8;
+  document.getElementById('vin-err2').classList.remove('show');
+}
+async function decodeVin2() {
+  const vin = document.getElementById('vin-input').value.trim().toUpperCase();
+  const yr = document.getElementById('year-input').value.trim();
+  await _decodeVin(vin, yr, 'vin-err2', 'vin-load2', 'vin-result', false);
+}
+
+async function _decodeVin(vin, yr, errId, loadId, resultId, mini) {
+  if (vin.length < 8) { showErr(errId, 'Enter at least 8 characters.'); return; }
+  if (!/^[A-Z0-9*]+$/.test(vin)) { showErr(errId, 'VIN contains invalid characters.'); return; }
+  const errEl=document.getElementById(errId), loadEl=document.getElementById(loadId), resEl=document.getElementById(resultId);
+  errEl.classList.remove('show'); resEl.innerHTML=''; loadEl.classList.add('show');
+  try {
+    let url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`;
+    if (/^\d{4}$/.test(yr)) url += `&modelyear=${yr}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`NHTSA error (${res.status})`);
+    const data = await res.json();
+    const r = data?.Results?.[0];
+    if (!r) throw new Error('No data returned.');
+    if ((r.ErrorCode||'').startsWith('11')) throw new Error('Invalid VIN format.');
+    if (!r.Make && !r.Model) throw new Error("Couldn't identify this VIN — try the manual tab.");
+    renderVinResult(r, vin, resEl, mini);
+  } catch(e) { showErr(errId, e.message||'Something went wrong.'); }
+  finally { loadEl.classList.remove('show'); }
+}
+
+function renderVinResult(r, vin, el, mini) {
+  const disp = r.DisplacementL ? parseFloat(r.DisplacementL).toFixed(1)+'L' : '';
+  const drive = r.DriveType ? r.DriveType.replace(/\/.*/,'').trim() : '';
+  const head = [r.ModelYear, r.Make, r.Model, r.Trim].filter(Boolean).join(' ');
+  const tail = [disp, drive].filter(Boolean).join(' · ');
+  const summary = tail ? `${head} · ${tail}` : head;
+  const fields = [['Make',r.Make],['Model',r.Model],['Year',r.ModelYear],['Trim',r.Trim],['Body',r.BodyClass],['Drive',r.DriveType],['Engine',r.EngineConfiguration],['Displacement',r.DisplacementL?parseFloat(r.DisplacementL).toFixed(1)+'L':''],['Cylinders',r.EngineCylinders],['Fuel',r.FuelTypePrimary]].filter(([,v])=>v&&v.trim());
+  if (mini) {
+    el.innerHTML = `<div class="result mt-2"><div class="result-head"><div><div class="result-eyebrow">◆ Vehicle decoded</div><div class="result-title">${esc(summary)}</div><div class="result-vin">${esc(vin)}</div></div><button class="btn btn-primary btn-sm" onclick="confirmVehicle(${JSON.stringify({summary,year:r.ModelYear,make:r.Make,model:r.Model,trim:r.Trim,source:'vin'})})">Confirm →</button></div></div>`;
+  } else {
+    el.innerHTML = `<div class="result"><div class="result-head"><div><div class="result-eyebrow">◆ Vehicle decoded</div><div class="result-title">${esc(summary)}</div><div class="result-vin">${esc(vin)}</div></div><button class="btn btn-primary btn-md" id="confirm-vin-btn">Confirm & Search Parts</button></div><div class="field-grid">${fields.map(([l,v])=>`<div class="fg-cell"><div class="lbl">${l}</div><div class="val">${esc(v)}</div></div>`).join('')}</div></div>`;
+    setTimeout(()=>{
+      const btn = document.getElementById('confirm-vin-btn');
+      if(btn) btn.onclick = () => { confirmVehicle({summary,year:r.ModelYear,make:r.Make,model:r.Model,trim:r.Trim,source:'vin'}); scrollToParts(); };
+    },50);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   VIN DECODE — GARAGE MODAL
+══════════════════════════════════════════════════════════ */
+document.getElementById('av-vin').addEventListener('input', function(){
+  this.value = this.value.toUpperCase();
+  document.getElementById('av-vin-cnt').textContent = `${this.value.length}/17`;
+  document.getElementById('av-decode-btn').disabled = this.value.trim().length < 8;
+  document.getElementById('av-err').classList.remove('show');
+});
+async function decodeAVVin() {
+  const vin = document.getElementById('av-vin').value.trim().toUpperCase();
+  const yr = document.getElementById('av-year').value.trim();
+  const label = document.getElementById('av-label').value.trim();
+  const errEl=document.getElementById('av-err'), loadEl=document.getElementById('av-load'), resEl=document.getElementById('av-result');
+  errEl.classList.remove('show'); resEl.innerHTML=''; loadEl.classList.add('show');
+  try {
+    let url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`;
+    if(/^\d{4}$/.test(yr)) url+=`&modelyear=${yr}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const r = data?.Results?.[0];
+    if(!r||(!r.Make&&!r.Model)) throw new Error("Couldn't identify VIN.");
+    const disp = r.DisplacementL?parseFloat(r.DisplacementL).toFixed(1)+'L':'';
+    const drive = r.DriveType?r.DriveType.replace(/\/.*/,'').trim():'';
+    const head = [r.ModelYear,r.Make,r.Model,r.Trim].filter(Boolean).join(' ');
+    const tail = [disp,drive].filter(Boolean).join(' · ');
+    const summary = tail?`${head} · ${tail}`:head;
+    resEl.innerHTML=`<div style="background:var(--bg3);border:1px solid var(--amber3);padding:1rem;margin-top:.75rem"><div class="result-eyebrow mb-1">◆ Decoded</div><div class="result-title">${esc(summary)}</div></div>`;
+    setTimeout(()=>{
+      resEl.innerHTML+=`<button class="btn btn-primary btn-lg mt-2" style="width:100%" onclick="saveGarageVehicle(${JSON.stringify({summary,year:r.ModelYear,make:r.Make,model:r.Model,trim:r.Trim,vin,source:'vin',label})})">Add to Garage →</button>`;
+    },50);
+  } catch(e) { showErr('av-err', e.message||'Something went wrong.'); }
+  finally { loadEl.classList.remove('show'); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MANUAL ENTRY
+══════════════════════════════════════════════════════════ */
+function onMYear() { const v=document.getElementById('m-year').value; document.getElementById('m-make').disabled=!v; checkManual(); }
+function onMMake() { populateModels('m-make','m-model'); document.getElementById('m-model').disabled=false; checkManual(); }
+function onMModel() { document.getElementById('m-trim').disabled=!document.getElementById('m-model').value; checkManual(); }
+function checkManual() { document.getElementById('m-submit').disabled=!(document.getElementById('m-year').value&&document.getElementById('m-make').value&&document.getElementById('m-model').value); }
+function toggleMore() { const m=document.getElementById('m-more'); m.classList.toggle('show'); document.getElementById('more-tog').textContent=m.classList.contains('show')?'− Hide details':'+ Add more details'; }
+function submitManual() {
+  const y=document.getElementById('m-year').value, mk=document.getElementById('m-make').value, md=document.getElementById('m-model').value;
+  const tr=document.getElementById('m-trim').value.trim(), en=document.getElementById('m-engine').value.trim(), dr=document.getElementById('m-drive').value.trim();
+  if(!y||!mk||!md) return;
+  const tail=[en,dr].filter(Boolean).join(' · ');
+  const summary=`${y} ${mk} ${md}${tr?' '+tr:''}${tail?' · '+tail:''}`;
+  confirmVehicle({summary,year:y,make:mk,model:md,trim:tr,source:'manual'});
+  scrollToParts();
+}
+
+/* Hero manual */
+function onHMYear() { const v=document.getElementById('hm-year').value; document.getElementById('hm-make').disabled=!v; checkHM(); }
+function onHMMake() { populateModels('hm-make','hm-model'); document.getElementById('hm-model').disabled=false; checkHM(); }
+function checkHM() { document.getElementById('hm-submit').disabled=!(document.getElementById('hm-year').value&&document.getElementById('hm-make').value&&document.getElementById('hm-model').value); }
+function confirmManualHero() {
+  const y=document.getElementById('hm-year').value, mk=document.getElementById('hm-make').value, md=document.getElementById('hm-model').value, tr=document.getElementById('hm-trim').value.trim();
+  if(!y||!mk||!md) return;
+  confirmVehicle({summary:`${y} ${mk} ${md}${tr?' '+tr:''}`,year:y,make:mk,model:md,trim:tr,source:'manual'});
+  scrollToLookup();
+}
+
+/* Garage modal manual */
+function onAVYear() { const v=document.getElementById('av-m-year').value; document.getElementById('av-m-make').disabled=!v; checkAVManual(); }
+function onAVMake() { populateModels('av-m-make','av-m-model'); document.getElementById('av-m-model').disabled=false; document.getElementById('av-m-trim').disabled=false; checkAVManual(); }
+function checkAVManual() { document.getElementById('av-m-submit').disabled=!(document.getElementById('av-m-year').value&&document.getElementById('av-m-make').value&&document.getElementById('av-m-model').value); }
+function saveManualGarage() {
+  const y=document.getElementById('av-m-year').value, mk=document.getElementById('av-m-make').value, md=document.getElementById('av-m-model').value;
+  const tr=document.getElementById('av-m-trim').value.trim(), label=document.getElementById('av-label2').value.trim();
+  if(!y||!mk||!md) return;
+  saveGarageVehicle({summary:`${y} ${mk} ${md}${tr?' '+tr:''}`,year:y,make:mk,model:md,trim:tr,source:'manual',label});
+}
+
+/* ══════════════════════════════════════════════════════════
+   VEHICLE STATE
+══════════════════════════════════════════════════════════ */
+function confirmVehicle(v) {
+  state.vehicle = v;
+  saveState();
+  renderAll();
+  toast(`Vehicle set: ${v.summary}`, 'success');
+}
+function renderBanner() {
+  const b = document.getElementById('banner');
+  if (state.vehicle) {
+    b.classList.add('show');
+    document.getElementById('banner-text').textContent = state.vehicle.summary;
+  } else {
+    b.classList.remove('show');
+  }
+}
+function updateCTALabel() { document.getElementById('cta-label').textContent = state.vehicle ? 'Search Parts' : 'Find My Parts'; }
+function updatePartsLock() {
+  const lock = document.getElementById('parts-lock'), body = document.getElementById('parts-body');
+  const sub = document.getElementById('parts-sub');
+  if (state.vehicle) {
+    lock.style.display = 'none'; body.classList.remove('locked');
+    sub.textContent = `Showing AutoReviver-confirmed parts for your ${state.vehicle.make||'vehicle'}.`;
+    document.getElementById('parts-q').placeholder = `Search parts for your ${[state.vehicle.year,state.vehicle.make,state.vehicle.model].filter(Boolean).join(' ')}…`;
+  } else {
+    lock.style.display = 'flex'; body.classList.add('locked');
+    sub.textContent = 'Confirm a vehicle above to unlock the parts catalog.';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   GARAGE
+══════════════════════════════════════════════════════════ */
+function openAddVehicle() {
+  if (!state.user) { showPage('auth'); toast('Sign in to save vehicles to your garage.'); return; }
+  openModal('add-vehicle-modal');
+}
+function selectAVMethod(m) {
+  state.avMethod = m;
+  document.getElementById('av-vin-btn').classList.toggle('on', m==='vin');
+  document.getElementById('av-manual-btn').classList.toggle('on', m==='manual');
+  document.getElementById('av-vin-form').style.display = m==='vin'?'block':'none';
+  document.getElementById('av-manual-form').style.display = m==='manual'?'block':'none';
+}
+function saveGarageVehicle(v) {
+  const existing = state.garage.findIndex(g => g.summary === v.summary);
+  if (existing >= 0) { toast('Vehicle already in garage.'); return; }
+  v.id = Date.now().toString();
+  v.isDefault = state.garage.length === 0;
+  state.garage.push(v);
+  if (v.isDefault) { state.vehicle = v; }
+  saveState(); renderAll();
+  closeModal('add-vehicle-modal');
+  toast(`${v.summary} added to garage!`, 'success');
+}
+function setDefaultVehicle(id) {
+  state.garage.forEach(g => g.isDefault = g.id === id);
+  state.vehicle = state.garage.find(g => g.id === id);
+  saveState(); renderAll();
+  toast(`Active vehicle: ${state.vehicle.summary}`, 'success');
+}
+function removeGarageVehicle(id) {
+  state.garage = state.garage.filter(g => g.id !== id);
+  if (state.vehicle?.id === id) { state.vehicle = state.garage.find(g => g.isDefault) || null; }
+  saveState(); renderAll();
+  toast('Vehicle removed from garage.');
+}
+function renderGarage() {
+  const g = document.getElementById('garage-grid'); if(!g) return;
+  if (!state.user) { g.innerHTML = `<div style="padding:3rem;text-align:center;color:var(--fg3);font-family:var(--font-m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;grid-column:1/-1"><a class="accent" href="#" onclick="showPage('auth')">Sign in</a> to save vehicles to your garage.</div>`; return; }
+  if (state.garage.length === 0) { g.innerHTML = `<div style="padding:3rem;text-align:center;color:var(--fg3);font-family:var(--font-m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;grid-column:1/-1">No vehicles saved yet. Add your first vehicle above.</div>`; return; }
+  g.innerHTML = state.garage.map(v => `
+    <div class="garage-card${v.isDefault?' default':''}">
+      ${v.isDefault?'<div class="garage-card-badge">Active</div>':''}
+      <div class="garage-card-make mono xs up">${esc(v.make||'')}</div>
+      <div class="garage-card-name">${esc(v.year||'')} ${esc(v.model||'')}</div>
+      <div class="garage-card-sub">${esc(v.trim||'All trims')} · ${esc(v.source==='vin'?'VIN decoded':'Manual entry')}</div>
+      <div class="garage-card-actions">
+        ${!v.isDefault?`<button class="btn btn-outline btn-sm" onclick="setDefaultVehicle('${v.id}')">Set Active</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="removeGarageVehicle('${v.id}')">Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   AI PARTS SEARCH
+══════════════════════════════════════════════════════════ */
+async function runAISearch() {
+  const q = document.getElementById('parts-q').value.trim() || 'common maintenance parts';
+  await _runAISearch(q, 'ai-results', 'parts-list', 'ai-result-label', 'ai-result-sub', 'ai-stream-badge');
+}
+async function searchByCategory(cat) {
+  if (!state.vehicle) return;
+  document.getElementById('parts-q').value = cat;
+  await runAISearch();
+}
+async function runSearchPage() {
+  const q = document.getElementById('search-q').value.trim() || 'common parts';
+  const el = document.getElementById('search-results');
+  el.innerHTML = `<div class="loading show" style="padding:2rem 0"><div class="spin"></div><span class="mono xs up">AI is searching…</span></div>`;
+  await _runAISearch(q, null, 'search-results', null, null, null, true);
+}
+
+async function _runAISearch(query, wrapId, listId, labelId, subId, badgeId, forSearch) {
+  if (!state.vehicle) { toast('Please select your vehicle first.'); scrollToLookup(); return; }
+  if (wrapId) { const w = document.getElementById(wrapId); w.classList.add('show'); }
+  if (labelId) document.getElementById(labelId).textContent = esc(query);
+  if (subId) document.getElementById(subId).textContent = `Searching for parts that fit your ${state.vehicle.summary}…`;
+  if (badgeId) document.getElementById(badgeId).style.display = 'flex';
+  const listEl = document.getElementById(listId);
+  listEl.innerHTML = `<div class="loading show" style="padding:1rem 0"><div class="spin"></div><span class="mono xs up">AI is finding AutoReviver-verified parts…</span></div>`;
+  const v = state.vehicle;
+  const prompt = `You are a car parts expert for a marketplace called AutoReviver/01.
+
+The user's vehicle: ${v.year} ${v.make} ${v.model}${v.trim?' '+v.trim:''}${v.source==='vin'?' (VIN decoded)':' (manual entry)'}
+
+They are searching for: "${query}"
+
+Return a JSON array of 4-6 realistic car parts that would fit this specific vehicle. For each part include:
+- id (string, e.g. "part-001")
+- title (string, specific part name)
+- brand (string, real brand name like Bosch, Brembo, NGK, Mann, Febi, etc)
+- partType ("OEM" | "Aftermarket" | "Performance")
+- condition ("New" | "Used" | "Refurbished")
+- price (number, realistic price in GBP)
+- comparePrice (number, slightly higher original price, or null)
+- description (string, 1-2 sentences about the part and why it fits)
+- AutoReviver ("EXACT" | "PARTIAL")
+- AutoReviverNote (string, e.g. "Fits ${v.year} ${v.make} ${v.model} all engine variants")
+- tags (array of 2-4 strings like ["OEM Number: X", "Genuine", "With warranty"])
+- sku (string, e.g. "BOG-001234")
+- stock (number, 1-50)
+- warrantyMonths (number, 0-24)
+
+Important: Parts MUST be realistic and appropriate for a ${v.year} ${v.make} ${v.model}. OEM parts cost more than aftermarket.
+
+Respond with ONLY a valid JSON array, no markdown, no explanation.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content?.map(b => b.text||'').join('') || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parts = JSON.parse(clean);
+    state.parts = parts;
+    if (badgeId) document.getElementById(badgeId).style.display = 'none';
+    if (subId) document.getElementById(subId).textContent = `${parts.length} parts found for your ${v.make} ${v.model}`;
+    renderPartsList(parts, listEl);
+  } catch(e) {
+    if (badgeId) document.getElementById(badgeId).style.display = 'none';
+    listEl.innerHTML = `<div style="padding:2rem;background:var(--bg2);border:1px solid var(--border)">
+      <p class="mono xs up accent" style="margin-bottom:.5rem">▸ Demo Results</p>
+      <p class="dim" style="font-size:.875rem;margin-bottom:1rem">Live AI search requires an API key. Showing demo data for <strong>${esc(v.year+' '+v.make+' '+v.model)}</strong>.</p>
+      ${getDemoPartsHtml(v, query)}
+    </div>`;
+    if (badgeId) document.getElementById(badgeId).style.display = 'none';
+    if (subId) document.getElementById(subId).textContent = `Demo results shown (no API key configured)`;
+  }
+}
+
+function getDemoPartsHtml(v, query) {
+  const demos = [
+    {id:'d1',title:`${v.make} ${v.model} Oil Filter`,brand:'Mann',partType:'OEM',price:12.99,comparePrice:18.99,description:`Genuine Mann oil filter compatible with ${v.year} ${v.make} ${v.model}. Ensures clean oil flow to protect the engine.`,AutoReviver:'EXACT',AutoReviverNote:`Fits ${v.yearStart||v.year}–${new Date().getFullYear()} ${v.make} ${v.model}`,tags:['Genuine Mann','OEM fit','3-6 month interval'],stock:24,warrantyMonths:12,sku:'MAN-W67-1'},
+    {id:'d2',title:`${v.make} ${v.model} Brake Pad Set (Front)`,brand:'Brembo',partType:'Aftermarket',price:49.99,comparePrice:79.99,description:`Brembo performance brake pads for the front axle. Improved bite and fade resistance vs OEM for ${v.year} ${v.make} ${v.model}.`,AutoReviver:'EXACT',AutoReviverNote:`Fits all ${v.make} ${v.model} variants`,tags:['Performance','Low dust','E-Mark certified'],stock:8,warrantyMonths:24,sku:'BRE-P85075N'},
+    {id:'d3',title:`${v.make} ${v.model} Air Filter`,brand:'K&N',partType:'Performance',price:39.99,comparePrice:null,description:`K&N high-flow performance air filter. Reusable, washable, guaranteed to increase airflow vs paper filters for ${v.year} ${v.make} ${v.model}.`,AutoReviver:'EXACT',AutoReviverNote:`Confirmed fit — ${v.year} ${v.make} ${v.model}`,tags:['Performance','Reusable','Lifetime warranty'],stock:15,warrantyMonths:999,sku:'KN-33-5038'},
+    {id:'d4',title:`${v.make} ${v.model} Spark Plug Set`,brand:'NGK',partType:'OEM',price:34.99,comparePrice:42.00,description:`NGK iridium spark plugs — OEM specification for ${v.year} ${v.make} ${v.model}. Long life, consistent ignition performance.`,AutoReviver:'PARTIAL',AutoReviverNote:`Verify engine code for correct gap spec`,tags:['Iridium','OEM spec','60k service interval'],stock:32,warrantyMonths:12,sku:'NGK-IFR6T11'},
+  ];
+  return renderPartsListHTML(demos);
+}
+
+function renderPartsList(parts, el) {
+  el.innerHTML = renderPartsListHTML(parts);
+  attachPartCardListeners();
+}
+
+function renderPartsListHTML(parts) {
+  return parts.map(p => {
+    const badgeCls = p.AutoReviver==='EXACT'?'badge-fit':'badge-warn';
+    const badgeTxt = p.AutoReviver==='EXACT'?'✓ Exact Fit':'⚠ Check AutoReviver';
+    const inCompare = state.compare.some(c => c.id === p.id);
+    return `<div class="part-card${inCompare?' selected':''}" id="pc-${p.id}">
+      <div>
+        <div class="part-brand">${esc(p.brand)} · <span class="mono xs dim">${esc(p.sku||'')}</span></div>
+        <div class="part-title">${esc(p.title)}</div>
+        <div class="part-desc">${esc(p.description||'')}</div>
+        <div class="part-tags">
+          <span class="AutoReviver-badge ${badgeCls}">${badgeTxt}</span>
+          ${(p.tags||[]).map(t=>`<span class="ptag">${esc(t)}</span>`).join('')}
+          <span class="ptag">${esc(p.partType||'')}</span>
+          ${p.warrantyMonths?`<span class="ptag">${p.warrantyMonths===999?'Lifetime':p.warrantyMonths+'mo'} warranty</span>`:''}
+          ${p.stock?`<span class="ptag">${p.stock} in stock</span>`:''}
+        </div>
+        ${p.AutoReviverNote?`<div class="mono xs dim" style="margin-top:.6rem;font-size:9px;letter-spacing:.12em">${esc(p.AutoReviverNote)}</div>`:''}
+      </div>
+      <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div class="part-price">£${Number(p.price).toFixed(2)}</div>
+          ${p.comparePrice?`<div class="part-msrp">Was £${Number(p.comparePrice).toFixed(2)}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.5rem;align-items:flex-end">
+          <button class="btn btn-primary btn-sm" onclick="addToCart('${p.id}')">Add to Cart</button>
+          <button class="btn btn-ghost btn-sm compare-toggle-btn" data-id="${p.id}" onclick="toggleCompare('${p.id}')">${inCompare?'− Remove':'+ Compare'}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function attachPartCardListeners() {}
+
+function applyFilters() { runSearchPage(); }
+function clearFilters() { document.querySelectorAll('.filter-sidebar input[type=checkbox]').forEach(i=>i.checked=false); document.getElementById('f-min').value=''; document.getElementById('f-max').value=''; }
+function renderSearchPage() {
+  const sub = document.getElementById('search-page-sub');
+  if (sub && state.vehicle) sub.textContent = `AI-powered search, AutoReviver-verified for your ${state.vehicle.summary}.`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   COMPARE
+══════════════════════════════════════════════════════════ */
+function toggleCompare(partId) {
+  const part = state.parts.find(p => p.id === partId);
+  if (!part) return;
+  const idx = state.compare.findIndex(c => c.id === partId);
+  if (idx >= 0) { state.compare.splice(idx,1); toast(`Removed from compare.`); }
+  else if (state.compare.length >= 4) { toast('You can compare up to 4 parts.'); return; }
+  else { state.compare.push(part); toast(`Added to compare: ${part.brand} ${part.title}`); }
+  renderCompareBar();
+  // Update card UI
+  document.querySelectorAll(`[id="pc-${partId}"]`).forEach(card => card.classList.toggle('selected', idx < 0));
+  document.querySelectorAll(`.compare-toggle-btn[data-id="${partId}"]`).forEach(btn => btn.textContent = idx>=0?'+ Compare':'− Remove');
+}
+function renderCompareBar() {
+  const bar = document.getElementById('compare-bar'); if(!bar) return;
+  bar.classList.toggle('show', state.compare.length >= 2);
+  document.getElementById('compare-count').textContent = `${state.compare.length}/4`;
+  document.getElementById('compare-items-list').innerHTML = state.compare.map(p =>
+    `<div class="compare-item">${esc(p.brand)} ${esc(p.title).slice(0,30)}… <button onclick="toggleCompare('${p.id}')">×</button></div>`).join('');
+}
+function clearCompare() { state.compare=[]; renderCompareBar(); document.querySelectorAll('.part-card.selected').forEach(c=>c.classList.remove('selected')); document.querySelectorAll('.compare-toggle-btn').forEach(b=>b.textContent='+ Compare'); }
+function openCompare() {
+  const v = state.vehicle;
+  const rows = [
+    ['Price', p => `<strong class="accent">£${Number(p.price).toFixed(2)}</strong>`],
+    ['Original Price', p => p.comparePrice?`£${Number(p.comparePrice).toFixed(2)}`:'—'],
+    ['Brand', p => p.brand],
+    ['Part Type', p => p.partType],
+    ['Condition', p => p.condition||'New'],
+    ['AutoReviver', p => p.AutoReviver==='EXACT'?'<span class="badge badge-green">✓ Exact Fit</span>':'<span class="badge badge-amber">⚠ Check</span>'],
+    ['AutoReviver Note', p => `<span class="mono xs dim">${esc(p.AutoReviverNote||'—')}</span>`],
+    ['Stock', p => `${p.stock||'?'} units`],
+    ['Warranty', p => p.warrantyMonths?(p.warrantyMonths===999?'Lifetime':p.warrantyMonths+' months'):'No data'],
+    ['SKU', p => `<span class="mono xs">${esc(p.sku||'—')}</span>`],
+  ];
+  document.getElementById('compare-content').innerHTML = `
+    ${v?`<div style="margin-bottom:1rem;padding:.75rem;background:var(--bg2);border:1px solid var(--amber3)"><span class="mono xs up accent">◆ Vehicle: </span><span class="mono xs dim">${esc(v.summary)}</span></div>`:''}
+    <div style="overflow-x:auto">
+    <table class="compare-table">
+      <thead><tr><th>Spec</th>${state.compare.map(p=>`<th><div class="mono xs up accent">${esc(p.brand)}</div><div style="font-weight:600;text-transform:uppercase;font-size:.9rem;margin-top:.2rem">${esc(p.title)}</div></th>`).join('')}</tr></thead>
+      <tbody>${rows.map(([label,fn])=>`<tr><td>${label}</td>${state.compare.map(p=>`<td>${fn(p)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>
+    <div style="display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap">
+      ${state.compare.map(p=>`<button class="btn btn-primary btn-md" onclick="addToCart('${p.id}');closeModal('compare-modal')">Add ${esc(p.brand)} to Cart</button>`).join('')}
+    </div>`;
+  openModal('compare-modal');
+}
+
+/* ══════════════════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════════════════ */
+function showAuthLogin() { document.getElementById('auth-login').style.display='block'; document.getElementById('auth-register').style.display='none'; document.getElementById('auth-forgot').style.display='none'; }
+function showAuthRegister() { document.getElementById('auth-login').style.display='none'; document.getElementById('auth-register').style.display='block'; document.getElementById('auth-forgot').style.display='none'; }
+function showAuthForgot() { document.getElementById('auth-login').style.display='none'; document.getElementById('auth-register').style.display='none'; document.getElementById('auth-forgot').style.display='block'; }
+function selectRole(r) {
+  state.selectedRole = r;
+  document.getElementById('role-buyer').classList.toggle('on', r==='buyer');
+  document.getElementById('role-seller').classList.toggle('on', r==='seller');
+  document.getElementById('seller-fields').style.display = r==='seller'?'block':'none';
+}
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { toast('Please fill in all fields.', 'error'); return; }
+  // Demo login — in production this calls POST /api/auth/login
+  const users = JSON.parse(localStorage.getItem('AutoReviver01_users')||'[]');
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+  if (!user) { toast('Invalid email or password.', 'error'); return; }
+  state.user = { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, businessName: user.businessName };
+  saveState(); renderAll();
+  toast(`Welcome back, ${user.firstName}!`, 'success');
+  showPage('home');
+}
+function doRegister() {
+  const first=document.getElementById('reg-first').value.trim(), last=document.getElementById('reg-last').value.trim();
+  const email=document.getElementById('reg-email').value.trim(), pass=document.getElementById('reg-pass').value;
+  const biz=document.getElementById('reg-biz').value.trim();
+  if (!first||!last||!email||!pass) { toast('Please fill in all fields.', 'error'); return; }
+  if (pass.length < 6) { toast('Password must be at least 6 characters.', 'error'); return; }
+  const users = JSON.parse(localStorage.getItem('AutoReviver01_users')||'[]');
+  if (users.find(u => u.email.toLowerCase()===email.toLowerCase())) { toast('Email already registered.', 'error'); return; }
+  const user = { id: Date.now().toString(), email, password: pass, firstName: first, lastName: last, role: state.selectedRole, businessName: biz||first+' Auto Parts' };
+  users.push(user);
+  localStorage.setItem('AutoReviver01_users', JSON.stringify(users));
+  state.user = { id: user.id, email: user.email, firstName: first, lastName: last, role: state.selectedRole, businessName: user.businessName };
+  saveState(); renderAll();
+  toast(`Account created! Welcome, ${first}!`, 'success');
+  showPage('home');
+}
+function doForgot() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { toast('Please enter your email.', 'error'); return; }
+  toast('Password reset instructions sent to '+email, 'success');
+  showAuthLogin();
+}
+function logout() {
+  state.user = null; saveState(); renderNav();
+  toast('Signed out successfully.');
+  showPage('home');
+}
+function renderNav() {
+  const nav = document.getElementById('main-nav');
+  const isLoggedIn = !!state.user;
+  // Nav is always shown now
+  nav.classList.add('show');
+  // Auth links only when signed in
+  document.getElementById('nav-links-auth').style.display = isLoggedIn ? 'flex' : 'none';
+  // Signed-in vs signed-out sections
+  document.getElementById('nav-signed-out').style.display = isLoggedIn ? 'none' : 'flex';
+  document.getElementById('nav-signed-in').style.display = isLoggedIn ? 'flex' : 'none';
+  if (isLoggedIn) {
+    document.getElementById('nav-avatar').textContent = (state.user.firstName[0]+(state.user.lastName?state.user.lastName[0]:'')).toUpperCase();
+    document.getElementById('nav-username').textContent = state.user.firstName + ' ' + (state.user.lastName||'');
+    document.getElementById('nav-seller').style.display = state.user.role==='seller'?'block':'none';
+  }
+  // Hero Create Account button visibility
+  const heroCA = document.getElementById('hero-create-account');
+  if (heroCA) heroCA.style.display = isLoggedIn ? 'none' : '';
+  renderSellerDash();
+}
+
+/* ══════════════════════════════════════════════════════════
+   SELLER / INVENTORY
+══════════════════════════════════════════════════════════ */
+function addAutoReviverRow() {
+  const rows = document.getElementById('AutoReviver-rows'); if(!rows) return;
+  const row = document.createElement('div');
+  row.className = 'AutoReviver-row';
+  row.innerHTML = `<input class="inp" type="number" placeholder="2018" min="1990" max="2030"/>
+    <input class="inp" type="number" placeholder="2024" min="1990" max="2030"/>
+    <input class="inp" placeholder="BMW"/>
+    <input class="inp" placeholder="X3"/>
+    <input class="inp" placeholder="xDrive30i / AWD"/>
+    <button class="AutoReviver-remove" onclick="this.parentElement.remove()">×</button>`;
+  rows.appendChild(row);
+}
+function savePart(publish) {
+  const title = document.getElementById('p-title').value.trim();
+  const sku = document.getElementById('p-sku').value.trim();
+  const brand = document.getElementById('p-brand').value.trim();
+  const price = document.getElementById('p-price').value.trim();
+  const stock = document.getElementById('p-stock').value.trim();
+  if (!title||!sku||!brand||!price||!stock) { toast('Please fill in all required fields.', 'error'); return; }
+  const AutoReviverRows = [...document.getElementById('AutoReviver-rows').querySelectorAll('.AutoReviver-row')].map(row => {
+    const inputs = row.querySelectorAll('input');
+    return { yearStart:inputs[0].value, yearEnd:inputs[1].value, make:inputs[2].value, model:inputs[3].value, trim:inputs[4].value };
+  }).filter(r => r.make && r.model);
+  if (AutoReviverRows.length === 0) { toast('Add at least one AutoReviver range.', 'error'); return; }
+  const part = {
+    id: Date.now().toString(), title, sku, brand,
+    mpn: document.getElementById('p-mpn').value.trim(),
+    oem: document.getElementById('p-oem').value.trim(),
+    category: document.getElementById('p-cat').value,
+    partType: document.getElementById('p-type').value,
+    condition: document.getElementById('p-cond').value,
+    description: document.getElementById('p-desc').value.trim(),
+    price: parseFloat(price),
+    comparePrice: parseFloat(document.getElementById('p-msrp').value)||null,
+    stock: parseInt(stock),
+    warrantyMonths: parseInt(document.getElementById('p-warranty').value)||0,
+    AutoRevivers: AutoReviverRows,
+    published: publish,
+    createdAt: new Date().toISOString(),
+    sellerId: state.user?.id,
+  };
+  state.inventory.push(part);
+  saveState(); renderInventory();
+  toast(publish?`"${title}" published!`:`"${title}" saved as draft.`, 'success');
+  showPage('seller');
+}
+function renderInventory() {
+  if (!state.user || state.user.role !== 'seller') return;
+  const biz = document.getElementById('seller-biz-name');
+  if (biz) biz.textContent = state.user.businessName || 'Your Inventory';
+  const myParts = state.inventory.filter(p => p.sellerId === state.user?.id);
+  const tbody = document.getElementById('inv-tbody'); if(!tbody) return;
+  if (myParts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--fg3);font-family:var(--font-m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:3rem">No listings yet — add your first part</td></tr>`;
+  } else {
+    tbody.innerHTML = myParts.map(p => {
+      const stockCls = p.stock>10?'stock-ok':p.stock>0?'stock-low':'stock-out';
+      const stockLbl = p.stock>10?'In Stock':p.stock>0?'Low Stock':'Out of Stock';
+      return `<tr>
+        <td><div style="font-weight:500">${esc(p.title)}</div><div class="mono xs dim">${esc(p.sku)}</div></td>
+        <td>${esc(p.brand)}</td>
+        <td><span class="badge badge-amber">${esc(p.partType)}</span></td>
+        <td><strong>£${Number(p.price).toFixed(2)}</strong></td>
+        <td><span class="stock-badge ${stockCls}">${p.stock} — ${stockLbl}</span></td>
+        <td><span class="mono xs dim">${p.AutoRevivers.length} rules</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="deletePart('${p.id}')">Remove</button></td>
+      </tr>`;
+    }).join('');
+  }
+  // Stats
+  const pub = myParts.filter(p=>p.published).length;
+  const fits = myParts.reduce((a,p)=>a+p.AutoRevivers.length,0);
+  const ds = id => { const el=document.getElementById(id); return el?el:null; };
+  if(ds('ds-parts')) ds('ds-parts').textContent=pub;
+  if(ds('ds-AutoRevivers')) ds('ds-AutoRevivers').textContent=fits;
+  if(ds('ds-rev')) ds('ds-rev').textContent='£'+myParts.reduce((a,p)=>a+p.price,0).toFixed(2);
+}
+function renderSellerDash() { if(state.user?.role==='seller') renderInventory(); }
+function deletePart(id) { state.inventory=state.inventory.filter(p=>p.id!==id); saveState(); renderInventory(); toast('Part removed.'); }
+function addToCart(id) { toast('Added to cart! (Cart & checkout coming in Phase 6 — see architecture doc)', 'success'); }
+
+/* ══════════════════════════════════════════════════════════
+   MODALS & UI HELPERS
+══════════════════════════════════════════════════════════ */
+function openModal(id) { document.getElementById(id).classList.add('show'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); document.body.style.overflow=''; }
+document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', function(e){ if(e.target===this) closeModal(this.id); }));
+function switchDecoderTab(tab, el) { document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('on')); el.classList.add('on'); document.getElementById('dtab-vin').style.display=tab==='vin'?'block':'none'; document.getElementById('dtab-manual').style.display=tab==='manual'?'block':'none'; }
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab-strip .tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('tp-'+tab).classList.add('on');
+}
+function scrollToLookup() { document.getElementById('lookup')?.scrollIntoView({behavior:'smooth',block:'start'}); }
+function scrollToParts() { setTimeout(()=>document.getElementById('parts-sec')?.scrollIntoView({behavior:'smooth',block:'start'}),300); }
+function showErr(id, msg) { const el=document.getElementById(id); if(el){el.textContent=msg; el.classList.add('show');} }
+function esc(s) { return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg, type) {
+  const stack = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast${type?' '+type:''}`;
+  t.textContent = msg;
+  stack.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+/* ══════════════════════════════════════════════════════════
+   IMAGE SCANNING — SHARED UTILITIES
+══════════════════════════════════════════════════════════ */
+let sellerScanData = null;  // base64 image data for seller
+let sellerScanParsed = null; // parsed AI result for seller
+let buyerScanParsed = null;  // parsed AI result for buyer
+let searchPageScanParsed = null;
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+function getImageMediaType(file) {
+  if (file.type) return file.type;
+  const ext = file.name.split('.').pop().toLowerCase();
+  return {'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','webp':'image/webp','gif':'image/gif'}[ext] || 'image/jpeg';
+}
+
+async function callVisionAI(base64, mediaType, systemPrompt, userPrompt) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: userPrompt }
+        ]
+      }],
+      system: systemPrompt
+    })
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content?.map(b => b.text||'').join('') || '';
+}
+
+/* ══════════════════════════════════════════════════════════
+   SELLER IMAGE SCAN — identify part from photo
+══════════════════════════════════════════════════════════ */
+function handleSellerImgDrop(e) {
+  e.preventDefault();
+  document.getElementById('seller-scan-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processSellerImg(file);
+}
+function handleSellerImgSelect(e) {
+  const file = e.target.files[0];
+  if (file) processSellerImg(file);
+}
+async function processSellerImg(file) {
+  // Show preview
+  const preview = document.getElementById('seller-scan-preview');
+  const previewImg = document.getElementById('seller-scan-img');
+  const load = document.getElementById('seller-scan-load');
+  const result = document.getElementById('seller-scan-result');
+  const resultText = document.getElementById('seller-scan-text');
+  result.classList.remove('show');
+  sellerScanParsed = null;
+
+  const objectUrl = URL.createObjectURL(file);
+  previewImg.src = objectUrl;
+  preview.classList.add('show');
+  load.classList.add('show');
+
+  try {
+    const base64 = await fileToBase64(file);
+    sellerScanData = { base64, mediaType: getImageMediaType(file) };
+
+    const systemPrompt = `You are an expert automotive parts identifier. Analyze images of car parts and return structured JSON data. Always respond with ONLY valid JSON, no markdown, no preamble.`;
+    const userPrompt = `Identify this car part from the image. Return a JSON object with these fields:
+- title (string): specific part name, e.g. "Front Brake Pad Set"
+- brand (string): brand visible or likely brand, e.g. "Brembo"
+- category (string): one of "Engine & Drivetrain", "Brakes & Suspension", "Filters & Fluids", "Electrical & Lighting", "Body & Exterior", "Interior & Trim", "Exhaust", "Tyres & Wheels"
+- partType (string): "OEM" | "Aftermarket" | "Performance"
+- condition (string): "New" | "Used" | "Refurbished"
+- description (string): 1-2 sentences describing the part and its function
+- mpn (string): MPN/part number if visible in image, else ""
+- oem (string): OEM number if visible, else ""
+- estimatedPrice (number): realistic price in GBP
+- warrantyMonths (number): typical warranty months for this type of part
+- summary (string): 1 short sentence describing what you see in the image
+- compatibleMakes (array of strings): likely compatible car makes e.g. ["BMW", "Audi"]
+Respond with ONLY the JSON object.`;
+
+    const raw = await callVisionAI(base64, getImageMediaType(file), systemPrompt, userPrompt);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    sellerScanParsed = JSON.parse(clean);
+
+    resultText.innerHTML = `<strong>${esc(sellerScanParsed.title)}</strong><br>
+      <span class="mono xs up dim" style="display:inline-block;margin:.2rem 0">${esc(sellerScanParsed.category)}</span><br>
+      ${esc(sellerScanParsed.summary)}<br>
+      <span class="mono xs dim" style="margin-top:.4rem;display:block">Est. Price: £${Number(sellerScanParsed.estimatedPrice||0).toFixed(2)} · ${esc(sellerScanParsed.partType)} · ${esc(sellerScanParsed.condition)}</span>`;
+    result.classList.add('show');
+    toast('Part identified! Review and apply to form.', 'success');
+  } catch(e) {
+    toast('Could not identify part: ' + (e.message||'Unknown error'), 'error');
+    resultText.textContent = 'Could not identify part from this image. Please fill in the form manually.';
+    result.classList.add('show');
+  } finally {
+    load.classList.remove('show');
+  }
+}
+function clearSellerScan() {
+  document.getElementById('seller-scan-preview').classList.remove('show');
+  document.getElementById('seller-scan-result').classList.remove('show');
+  document.getElementById('seller-img-input').value = '';
+  document.getElementById('seller-scan-img').src = '';
+  sellerScanData = null; sellerScanParsed = null;
+}
+function applySellerScanResult() {
+  if (!sellerScanParsed) return;
+  const p = sellerScanParsed;
+  const setVal = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+  setVal('p-title', p.title);
+  setVal('p-brand', p.brand);
+  setVal('p-mpn', p.mpn);
+  setVal('p-oem', p.oem);
+  setVal('p-desc', p.description);
+  setVal('p-price', p.estimatedPrice);
+  setVal('p-warranty', p.warrantyMonths);
+  // Category select
+  const catEl = document.getElementById('p-cat');
+  if (catEl && p.category) {
+    [...catEl.options].forEach(o => { if(o.value===p.category||o.text===p.category) catEl.value=o.value; });
+  }
+  // Part type
+  const typeEl = document.getElementById('p-type');
+  if (typeEl && p.partType) {
+    [...typeEl.options].forEach(o => { if(o.value===p.partType||o.text===p.partType) typeEl.value=o.value; });
+  }
+  // Condition
+  const condEl = document.getElementById('p-cond');
+  if (condEl && p.condition) {
+    [...condEl.options].forEach(o => { if(o.value===p.condition||o.text===p.condition) condEl.value=o.value; });
+  }
+  // Add a SKU from brand + title initials
+  const skuEl = document.getElementById('p-sku');
+  if (skuEl && !skuEl.value && p.brand && p.title) {
+    const brandCode = p.brand.substring(0,3).toUpperCase();
+    skuEl.value = brandCode + '-' + Date.now().toString().slice(-5);
+  }
+  toast('Form filled from AI scan!', 'success');
+  // Scroll to basic info
+  document.getElementById('p-title')?.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+/* ══════════════════════════════════════════════════════════
+   BUYER IMAGE SCAN — identify part needed, search it (home)
+══════════════════════════════════════════════════════════ */
+function handleBuyerImgDrop(e) {
+  e.preventDefault();
+  document.getElementById('buyer-scan-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processBuyerImg(file);
+}
+function handleBuyerImgSelect(e) {
+  const file = e.target.files[0];
+  if (file) processBuyerImg(file);
+}
+async function processBuyerImg(file) {
+  if (!state.vehicle) { toast('Please select your vehicle first.', 'error'); scrollToLookup(); return; }
+  const previewWrap = document.getElementById('buyer-scan-preview-wrap');
+  const previewImg = document.getElementById('buyer-scan-img');
+  const load = document.getElementById('buyer-scan-load');
+  const result = document.getElementById('buyer-scan-result');
+  const resultText = document.getElementById('buyer-scan-text');
+  result.classList.remove('show');
+  buyerScanParsed = null;
+
+  previewImg.src = URL.createObjectURL(file);
+  previewWrap.style.display = 'flex';
+  load.classList.add('show');
+
+  try {
+    const base64 = await fileToBase64(file);
+    const v = state.vehicle;
+    const systemPrompt = `You are an automotive parts expert for a car parts marketplace. Identify parts from images and return structured JSON only.`;
+    const userPrompt = `The buyer's vehicle is: ${v.year||''} ${v.make||''} ${v.model||''} ${v.trim||''}.
+They have uploaded a photo of a part they need to replace.
+Identify what part this is and return JSON with:
+- partName (string): concise search-ready part name e.g. "front brake pads"
+- searchQuery (string): the best search query to find this part for their vehicle
+- description (string): 1-2 sentences about what this part is and why it might need replacing
+- category (string): part category
+- urgency (string): "Low" | "Medium" | "High" (how urgent is replacement typically)
+Respond with ONLY valid JSON.`;
+
+    const raw = await callVisionAI(base64, getImageMediaType(file), systemPrompt, userPrompt);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    buyerScanParsed = JSON.parse(clean);
+
+    resultText.innerHTML = `<strong>${esc(buyerScanParsed.partName)}</strong> · <span class="mono xs dim">${esc(buyerScanParsed.category)}</span><br>
+      ${esc(buyerScanParsed.description)}
+      ${buyerScanParsed.urgency==='High'?'<br><span style="color:var(--red);font-family:var(--font-m);font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin-top:.3rem;display:inline-block">⚠ High urgency — replace soon</span>':''}`;
+    result.classList.add('show');
+    toast('Part identified! Search for it now.', 'success');
+  } catch(e) {
+    toast('Could not identify part: ' + (e.message||'Unknown error'), 'error');
+    result.classList.remove('show');
+  } finally {
+    load.classList.remove('show');
+  }
+}
+function clearBuyerScan() {
+  document.getElementById('buyer-scan-preview-wrap').style.display = 'none';
+  document.getElementById('buyer-scan-result').classList.remove('show');
+  document.getElementById('buyer-img-input').value = '';
+  buyerScanParsed = null;
+}
+function applyBuyerScanResult() {
+  if (!buyerScanParsed) return;
+  const q = buyerScanParsed.searchQuery || buyerScanParsed.partName;
+  document.getElementById('parts-q').value = q;
+  runAISearch();
+  clearBuyerScan();
+}
+
+/* ══════════════════════════════════════════════════════════
+   BUYER IMAGE SCAN — search page
+══════════════════════════════════════════════════════════ */
+function handleSearchPageImgDrop(e) {
+  e.preventDefault();
+  document.getElementById('search-page-scan-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processSearchPageImg(file);
+}
+function handleSearchPageImgSelect(e) {
+  const file = e.target.files[0];
+  if (file) processSearchPageImg(file);
+}
+async function processSearchPageImg(file) {
+  if (!state.vehicle) { toast('Please select your vehicle first.', 'error'); return; }
+  const previewWrap = document.getElementById('search-page-scan-preview-wrap');
+  const previewImg = document.getElementById('search-page-scan-img');
+  const load = document.getElementById('search-page-scan-load');
+  const result = document.getElementById('search-page-scan-result');
+  const resultText = document.getElementById('search-page-scan-text');
+  result.classList.remove('show');
+  searchPageScanParsed = null;
+
+  previewImg.src = URL.createObjectURL(file);
+  previewWrap.style.display = 'flex';
+  load.classList.add('show');
+
+  try {
+    const base64 = await fileToBase64(file);
+    const v = state.vehicle;
+    const systemPrompt = `You are an automotive parts expert. Identify parts and return JSON only.`;
+    const userPrompt = `Vehicle: ${v.year||''} ${v.make||''} ${v.model||''} ${v.trim||''}.
+Identify the part in this photo and return JSON:
+- partName (string): concise part name
+- searchQuery (string): best search query for this part
+- description (string): what it is and why it might need replacing
+- category (string): part category
+- urgency (string): "Low" | "Medium" | "High"
+ONLY JSON, no markdown.`;
+    const raw = await callVisionAI(base64, getImageMediaType(file), systemPrompt, userPrompt);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    searchPageScanParsed = JSON.parse(clean);
+    resultText.innerHTML = `<strong>${esc(searchPageScanParsed.partName)}</strong> · <span class="mono xs dim">${esc(searchPageScanParsed.category)}</span><br>${esc(searchPageScanParsed.description)}`;
+    result.classList.add('show');
+    toast('Part identified!', 'success');
+  } catch(e) {
+    toast('Could not identify part.', 'error');
+  } finally {
+    load.classList.remove('show');
+  }
+}
+function clearSearchPageScan() {
+  document.getElementById('search-page-scan-preview-wrap').style.display = 'none';
+  document.getElementById('search-page-scan-result').classList.remove('show');
+  document.getElementById('search-page-img-input').value = '';
+  searchPageScanParsed = null;
+}
+function applySearchPageScanResult() {
+  if (!searchPageScanParsed) return;
+  document.getElementById('search-q').value = searchPageScanParsed.searchQuery || searchPageScanParsed.partName;
+  runSearchPage();
+  clearSearchPageScan();
+}
+</script>
+
+</body>
+</html>
